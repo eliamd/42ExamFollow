@@ -1,0 +1,221 @@
+:root {
+  --primary: #0ea5e9;
+  --primary-dark: #0369a1;
+  --success: #22c55e;
+  --warning: #eab308;
+  --error: #ef4444;
+  --background: #ffffff;
+  --background-dark: #1f2937;
+  --text: #000000;
+  --text-dark: #ffffff;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: var(--background-dark);
+    --text: var(--text-dark);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  color: var(--text);
+  background-color: var(--background);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.container {
+  width: 95%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.timer {
+  background: var(--background);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.timer-text {
+  color: var(--gray-700);
+  font-size: 0.875rem;
+}
+
+.timer-value {
+  color: var(--primary);
+  font-family: monospace;
+  margin-left: 0.5rem;
+}
+
+.students-grid {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  scroll-snap-type: x mandatory;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.students-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.student-card {
+  flex: 0 0 280px;
+  background: var(--background);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  scroll-snap-align: start;
+  transition: transform 0.2s;
+}
+
+.student-card:hover {
+  transform: scale(1.02);
+}
+
+.student-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.student-avatar {
+  position: relative;
+  width: 4rem;
+  height: 4rem;
+}
+
+.student-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary);
+}
+
+.status-indicator {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid var(--background);
+}
+
+.status-success { background-color: var(--success); }
+.status-warning { background-color: var(--warning); }
+.status-error { background-color: var(--error); }
+.status-idle { background-color: var(--gray-200); }
+
+.student-info {
+  flex: 1;
+}
+
+.student-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.student-status {
+  font-size: 0.875rem;
+  color: var(--gray-700);
+}
+
+.group-number {
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.progress-section {
+  margin-top: 1.5rem;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.progress-label {
+  font-size: 0.875rem;
+  color: var(--gray-700);
+}
+
+.progress-value {
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.progress-bar {
+  height: 0.75rem;
+  background: var(--gray-200);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.progress-fill.success { background-color: var(--success); }
+.progress-fill.warning { background-color: var(--warning); }
+.progress-fill.error { background-color: var(--error); }
+.progress-fill.default { background-color: var(--primary); }
+
+.attempt-date {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--gray-700);
+}
+
+@media (prefers-color-scheme: dark) {
+  .student-card {
+    background: var(--gray-800);
+  }
+
+  .timer {
+    background: var(--gray-800);
+  }
+
+  .timer-text,
+  .student-status,
+  .progress-label,
+  .attempt-date {
+    color: var(--gray-200);
+  }
+
+  .progress-bar {
+    background: var(--gray-700);
+  }
+}
