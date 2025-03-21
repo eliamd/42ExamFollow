@@ -19,6 +19,7 @@ interface Student {
   projectUsers?: any;
   lastAttemptDate?: string;
   groupNumber?: number;
+  currentExam?: string;
 }
 
 function formatDate(dateString: string): string {
@@ -92,6 +93,8 @@ async function fetchStudentData(login: string): Promise<Student> {
     throw new Error('Non authentifié');
   }
 
+  console.log(`\n=== Début de la récupération des données pour ${login} ===`);
+
   // Récupérer les informations de l'utilisateur
   const userResponse = await axios.get(`https://api.intra.42.fr/v2/users/${login}`, {
     headers: {
@@ -99,38 +102,54 @@ async function fetchStudentData(login: string): Promise<Student> {
     },
   });
 
-  // Récupérer les projets de l'utilisateur
+  // Récupérer tous les projets de l'utilisateur
   const projectsResponse = await axios.get(`https://api.intra.42.fr/v2/users/${login}/projects_users`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
-  // Debug: afficher tous les projets pour voir leur structure
-  console.log('Projets de', login, ':', projectsResponse.data);
+  console.log('Nombre total de projets:', projectsResponse.data.length);
 
-  // Filtrer pour ne garder que les examens avec une logique plus précise
-  const examAttempts = projectsResponse.data
-    .filter((project: any) => {
-      const projectName = project.project.name.toLowerCase();
-      return projectName.includes('exam-') || projectName.includes('exam_');
-    })
-    .filter((project: any) => project.team !== null); // S'assurer qu'il y a une équipe
+  // Filtrer pour ne garder que les examens
+  const examAttempts = projectsResponse.data.filter((project: any) => {
+    const projectName = project.project.name;
+    const isExam = projectName.includes('Exam Rank');
+    console.log(`Projet: ${projectName} - Est un examen: ${isExam} - Note: ${project.final_mark} - Validé: ${project["validated?"]}`);
+    return isExam;
+  });
 
-  console.log('Tentatives d\'examens trouvées:', examAttempts);
+  console.log('Tentatives d\'examens trouvées:', examAttempts.map((project: any) => ({
+    name: project.project.name,
+    final_mark: project.final_mark,
+    validated: project["validated?"],
+    status: project.status,
+    created_at: project.created_at
+  })));
 
-  // Trouver la tentative avec le plus grand numéro de groupe
-  const lastExamAttempt = findHighestGroupAttempt(examAttempts);
-  console.log('Dernière tentative trouvée:', lastExamAttempt);
+  // Trouver la dernière tentative (la plus récente)
+  const lastExamAttempt = examAttempts.length > 0 ?
+    examAttempts.reduce((latest: any, current: any) => {
+      const latestDate = new Date(latest.created_at);
+      const currentDate = new Date(current.created_at);
+      return currentDate > latestDate ? current : latest;
+    }, examAttempts[0]) : null;
 
-  const now = new Date();
-  const lastAttemptDate = lastExamAttempt ? new Date(lastExamAttempt.created_at) : null;
-  const groupNumber = lastExamAttempt ? extractGroupNumber(lastExamAttempt.team.name) : undefined;
+  console.log('Dernière tentative trouvée:', lastExamAttempt ? {
+    name: lastExamAttempt.project.name,
+    final_mark: lastExamAttempt.final_mark,
+    validated: lastExamAttempt["validated?"],
+    status: lastExamAttempt.status,
+    created_at: lastExamAttempt.created_at
+  } : 'Aucune tentative trouvée');
 
   let progress = 0;
   let status = 'non commencé';
+  let currentExam = '';
 
   if (lastExamAttempt) {
+    currentExam = lastExamAttempt.project.name;
+
     if (lastExamAttempt.final_mark !== null) {
       progress = lastExamAttempt.final_mark;
       status = lastExamAttempt["validated?"] ? 'réussi' : 'échoué';
@@ -138,21 +157,28 @@ async function fetchStudentData(login: string): Promise<Student> {
       progress = 100;
       status = 'en attente de correction';
     } else if (lastExamAttempt.status === 'in_progress') {
-      // Calculer le temps écoulé depuis le début de l'examen
-      const examDuration = 3 * 60 * 60 * 1000; // 3 heures en millisecondes
-      const timeElapsed = now.getTime() - lastAttemptDate!.getTime();
+      const now = new Date();
+      const startDate = new Date(lastExamAttempt.created_at);
+      const examDuration = 3 * 60 * 60 * 1000; // 3 heures
+      const timeElapsed = now.getTime() - startDate.getTime();
 
       if (timeElapsed < examDuration) {
-        // L'examen est en cours
         progress = Math.min(100, Math.round((timeElapsed / examDuration) * 100));
         status = 'en cours';
       } else {
-        // L'examen est terminé mais pas encore noté
         progress = 100;
         status = 'terminé';
       }
     }
   }
+
+  console.log(`=== Résumé final pour ${login} ===`);
+  console.log({
+    currentExam,
+    progress,
+    status,
+    lastAttemptDate: lastExamAttempt?.created_at
+  });
 
   return {
     id: userResponse.data.id,
@@ -161,8 +187,8 @@ async function fetchStudentData(login: string): Promise<Student> {
     progress,
     status,
     projectUsers: lastExamAttempt,
-    lastAttemptDate: lastAttemptDate?.toISOString(),
-    groupNumber: groupNumber,
+    lastAttemptDate: lastExamAttempt?.created_at,
+    currentExam
   };
 }
 
@@ -263,6 +289,9 @@ export default function TrackingPage() {
                     </span>
                   )}
                 </p>
+                {student.currentExam && (
+                  <p className="exam-name">{student.currentExam}</p>
+                )}
               </div>
             </div>
 
