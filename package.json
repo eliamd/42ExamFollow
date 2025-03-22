@@ -15,7 +15,9 @@
     "axios": "^1.8.4",
     "next": "15.2.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-canvas-confetti": "^1.4.0",
+    "use-sound": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
