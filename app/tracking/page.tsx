@@ -10,12 +10,15 @@ import { useAuth } from '../components/AuthProvider';
 import Link from 'next/link';
 
 // Constante configurable pour le temps d'actualisation en secondes
-const UPDATE_INTERVAL_SECONDS = 40;
+const UPDATE_INTERVAL_SECONDS = 1;
 // Constantes pour la gestion des retries
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000; // 2 secondes
-const MIN_UPDATE_INTERVAL = 10; // 10 secondes minimum
-const MAX_UPDATE_INTERVAL = 300; // 5 minutes maximum
+const MIN_UPDATE_INTERVAL = 1; // 10 secondes minimum
+const MAX_UPDATE_INTERVAL = 100; // 5 minutes maximum
+
+// Ajouter le cache des utilisateurs en haut du fichier, après les imports
+const userDataCache: Record<string, { id: number; login: string; image: any }> = {};
 
 interface Student {
   id: number;
@@ -132,11 +135,22 @@ async function fetchStudentData(login: string): Promise<Student> {
   };
 
   try {
-    // Récupérer les informations de l'utilisateur avec retry
-    const userResponse = await fetchWithRetry(
-      `https://api.intra.42.fr/v2/users/${login}`,
-      authHeaders
-    );
+    // Vérifier si les données de l'utilisateur sont déjà en cache
+    let userData = userDataCache[login];
+    if (!userData) {
+      // Si pas en cache, récupérer les informations de l'utilisateur
+      const userResponse = await fetchWithRetry(
+        `https://api.intra.42.fr/v2/users/${login}`,
+        authHeaders
+      );
+      userData = {
+        id: userResponse.data.id,
+        login: userResponse.data.login,
+        image: userResponse.data.image
+      };
+      // Mettre en cache les données de l'utilisateur
+      userDataCache[login] = userData;
+    }
 
     // Récupérer tous les projets de l'utilisateur avec retry
     const projectsResponse = await fetchWithRetry(
@@ -206,9 +220,9 @@ async function fetchStudentData(login: string): Promise<Student> {
     });
 
     return {
-      id: userResponse.data.id,
-      login: userResponse.data.login,
-      image: userResponse.data.image,
+      id: userData.id,
+      login: userData.login,
+      image: userData.image,
       progress,
       status,
       projectUsers: lastExamAttempt,
