@@ -26,17 +26,15 @@ export default function Home() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-            42 Eval Viewer
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+      <div className="page-container">
+        <div className="login-container">
+          <h1 className="app-title">42 Eval Viewer</h1>
+          <p className="app-description">
             Connectez-vous avec votre compte 42 pour commencer
           </p>
           <button
             onClick={() => login()}
-            className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="btn btn-primary btn-block"
           >
             Se connecter avec 42
           </button>
@@ -46,48 +44,41 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="w-full max-w-2xl space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-            42 Eval Viewer
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Suivez la progression des étudiants en temps réel
-          </p>
-        </div>
+    <div className="page-container">
+      <div className="selection-container">
+        <h1 className="app-title">42 Eval Viewer</h1>
+        <p className="app-description">
+          Suivez la progression des étudiants en temps réel
+        </p>
 
-        <form onSubmit={handleAddStudent} className="space-y-4">
-          <div className="relative">
+        <form onSubmit={handleAddStudent}>
+          <div className="input-group">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Login de l'étudiant..."
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pr-10 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="input"
             />
             <button
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="btn-search"
             >
-              <MagnifyingGlassIcon className="h-5 w-5" />
+              <MagnifyingGlassIcon className="search-icon" />
             </button>
           </div>
         </form>
 
         {students.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
+          <div>
+            <div className="tags-container">
               {students.map((student) => (
-                <span
-                  key={student}
-                  className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                >
+                <span key={student} className="tag">
                   {student}
                   <button
                     type="button"
                     onClick={() => setStudents(students.filter((s) => s !== student))}
-                    className="ml-2 inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-blue-200 dark:hover:bg-blue-800"
+                    className="tag-close"
                   >
                     ×
                   </button>
@@ -97,7 +88,7 @@ export default function Home() {
 
             <button
               onClick={handleStartTracking}
-              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600"
+              className="btn btn-primary btn-block"
             >
               Commencer le suivi
             </button>

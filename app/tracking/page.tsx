@@ -192,6 +192,33 @@ async function fetchStudentData(login: string): Promise<Student> {
   };
 }
 
+// Composant pour le squelette de la carte étudiant
+function StudentCardSkeleton() {
+  return (
+    <div className="student-card">
+      <div className="student-header">
+        <div className="student-avatar">
+          <div className="skeleton skeleton-avatar"></div>
+        </div>
+        <div className="student-info">
+          <div className="skeleton skeleton-text"></div>
+          <div className="skeleton skeleton-text short"></div>
+          <div className="skeleton skeleton-text medium"></div>
+        </div>
+      </div>
+
+      <div className="progress-section">
+        <div className="progress-header">
+          <div className="skeleton skeleton-text short"></div>
+          <div className="skeleton skeleton-text short"></div>
+        </div>
+        <div className="progress-bar skeleton"></div>
+        <div className="skeleton skeleton-text" style={{ marginTop: '1rem' }}></div>
+      </div>
+    </div>
+  );
+}
+
 export default function TrackingPage() {
   const searchParams = useSearchParams();
   const [students, setStudents] = useState<string[]>([]);
@@ -233,17 +260,6 @@ export default function TrackingPage() {
     return null;
   }
 
-  if (isLoading) {
-    return (
-      <div className="container">
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>Chargement...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="container">
@@ -265,55 +281,63 @@ export default function TrackingPage() {
       </div>
 
       <div className="students-grid">
-        {studentsData?.map((student: Student) => (
-          <div key={student.id} className="student-card">
-            <div className="student-header">
-              <div className="student-avatar">
-                <img
-                  src={student.image?.versions?.small || student.image?.link}
-                  alt={student.login}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = 'https://cdn.intra.42.fr/users/default.png';
-                  }}
-                />
-                <div className={`status-indicator ${getStatusClass(student.status)}`}></div>
-              </div>
-              <div className="student-info">
-                <h2 className="student-name">{student.login}</h2>
-                <p className="student-status">
-                  {student.status}
-                  {student.groupNumber !== undefined && (
-                    <span className="group-number">
-                      (Groupe {student.groupNumber})
-                    </span>
+        {isLoading ? (
+          // Afficher des squelettes pendant le chargement
+          students.map((student, index) => (
+            <StudentCardSkeleton key={`skeleton-${index}`} />
+          ))
+        ) : (
+          // Afficher les données réelles
+          studentsData?.map((student: Student) => (
+            <div key={student.id} className="student-card">
+              <div className="student-header">
+                <div className="student-avatar">
+                  <img
+                    src={student.image?.versions?.small || student.image?.link}
+                    alt={student.login}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://cdn.intra.42.fr/users/default.png';
+                    }}
+                  />
+                  <div className={`status-indicator ${getStatusClass(student.status)}`}></div>
+                </div>
+                <div className="student-info">
+                  <h2 className="student-name">{student.login}</h2>
+                  <p className="student-status">
+                    {student.status}
+                    {student.groupNumber !== undefined && (
+                      <span className="group-number">
+                        (Groupe {student.groupNumber})
+                      </span>
+                    )}
+                  </p>
+                  {student.currentExam && (
+                    <p className="exam-name">{student.currentExam}</p>
                   )}
-                </p>
-                {student.currentExam && (
-                  <p className="exam-name">{student.currentExam}</p>
+                </div>
+              </div>
+
+              <div className="progress-section">
+                <div className="progress-header">
+                  <span className="progress-label">Progression</span>
+                  <span className="progress-value">{student.progress}%</span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className={`progress-fill ${getProgressClass(student.status)}`}
+                    style={{ width: `${student.progress}%` }}
+                  ></div>
+                </div>
+                {student.lastAttemptDate && (
+                  <div className="attempt-date">
+                    Dernier essai : {formatDate(student.lastAttemptDate)}
+                  </div>
                 )}
               </div>
             </div>
-
-            <div className="progress-section">
-              <div className="progress-header">
-                <span className="progress-label">Progression</span>
-                <span className="progress-value">{student.progress}%</span>
-              </div>
-              <div className="progress-bar">
-                <div
-                  className={`progress-fill ${getProgressClass(student.status)}`}
-                  style={{ width: `${student.progress}%` }}
-                ></div>
-              </div>
-              {student.lastAttemptDate && (
-                <div className="attempt-date">
-                  Dernier essai : {formatDate(student.lastAttemptDate)}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
