@@ -617,8 +617,10 @@ export default function TrackingPage() {
           <h1 className="title">Suivi des Examens 42</h1>
         </div>
         <div className="timer" onClick={() => setShowIntervalSlider(!showIntervalSlider)}>
-          <span className="timer-text">Prochaine actualisation dans :</span>
-          <span className="timer-value">{nextUpdate}s</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', width: '100%', height: '100%' }}>
+            <span className="timer-text" style={{ lineHeight: '1' }}>Prochaine actualisation dans : </span>
+            <span className="timer-value" style={{ minWidth: '3ch', textAlign: 'center', lineHeight: '1' }}>{nextUpdate}s</span>
+          </div>
           {showIntervalSlider && (
             <div className="interval-slider-container">
               <input
@@ -630,6 +632,7 @@ export default function TrackingPage() {
                 onMouseUp={handleIntervalChangeEnd}
                 onTouchEnd={handleIntervalChangeEnd}
                 className="interval-slider"
+                style={{ margin: '0', position: 'relative', top: '2px' }}
               />
               <span className="interval-value">{tempInterval}s</span>
             </div>
