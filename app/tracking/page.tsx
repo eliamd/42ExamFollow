@@ -14,6 +14,8 @@ const UPDATE_INTERVAL_SECONDS = 40;
 // Constantes pour la gestion des retries
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000; // 2 secondes
+const MIN_UPDATE_INTERVAL = 10; // 10 secondes minimum
+const MAX_UPDATE_INTERVAL = 300; // 5 minutes maximum
 
 interface Student {
   id: number;
@@ -73,11 +75,11 @@ function findHighestGroupAttempt(attempts: any[]): any {
 
 function getStatusClass(status: string): string {
   switch (status) {
-    case 'réussi':
+    case 'Réussi':
       return 'status-success';
-    case 'en cours':
+    case 'En cours':
       return 'status-warning';
-    case 'échoué':
+    case 'Échoué':
       return 'status-error';
     default:
       return 'status-idle';
@@ -86,11 +88,11 @@ function getStatusClass(status: string): string {
 
 function getProgressClass(status: string): string {
   switch (status) {
-    case 'réussi':
+    case 'Réussi':
       return 'success';
-    case 'en cours':
+    case 'En cours':
       return 'warning';
-    case 'échoué':
+    case 'Échoué':
       return 'error';
     default:
       return 'default';
@@ -190,9 +192,9 @@ async function fetchStudentData(login: string): Promise<Student> {
     if (lastExamAttempt) {
       currentExam = lastExamAttempt.project.name;
       progress = lastExamAttempt.team.final_mark || 0;
-      status = lastExamAttempt.team["validated?"] ? 'réussi' : 
-               lastExamAttempt.team.status === 'finished' ? 'échoué' : 
-               lastExamAttempt.team.status === 'in_progress' ? 'en cours' : 'non commencé';
+      status = lastExamAttempt.team["validated?"] ? 'Réussi' : 
+               lastExamAttempt.team.status === 'finished' ? 'Échoué' : 
+               lastExamAttempt.team.status === 'in_progress' ? 'En cours' : 'non commencé';
     }
 
     console.log(`=== Résumé final pour ${login} ===`);
@@ -275,8 +277,11 @@ export default function TrackingPage() {
   const [completedStudents, setCompletedStudents] = useState<Record<string, boolean>>({});
   const [showConfetti, setShowConfetti] = useState(false);
   const [nextUpdate, setNextUpdate] = useState(UPDATE_INTERVAL_SECONDS);
-  const nextUpdateRef = useRef(UPDATE_INTERVAL_SECONDS); // Référence pour le timer
-  const timerRef = useRef<NodeJS.Timeout | null>(null); // Référence pour l'intervalle
+  const [showIntervalSlider, setShowIntervalSlider] = useState(false);
+  const [customInterval, setCustomInterval] = useState(UPDATE_INTERVAL_SECONDS);
+  const [tempInterval, setTempInterval] = useState(UPDATE_INTERVAL_SECONDS);
+  const nextUpdateRef = useRef(UPDATE_INTERVAL_SECONDS);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
   const [currentUpdatingLogin, setCurrentUpdatingLogin] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -424,7 +429,7 @@ export default function TrackingPage() {
         }
         onComplete();
       }
-    }, 100); // Vérifier plus fréquemment pour une mise à jour fluide
+    }, 100);
 
     return () => {
       if (timerRef.current) {
@@ -433,6 +438,29 @@ export default function TrackingPage() {
       }
     };
   }, []);
+
+  // Fonction pour gérer le changement d'intervalle pendant le glissement
+  const handleIntervalChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseInt(event.target.value);
+    if (newValue >= MIN_UPDATE_INTERVAL && newValue <= MAX_UPDATE_INTERVAL) {
+      setTempInterval(newValue);
+    }
+  };
+
+  // Fonction pour appliquer le changement d'intervalle à la fin du glissement
+  const handleIntervalChangeEnd = () => {
+    if (tempInterval !== customInterval) {
+      setCustomInterval(tempInterval);
+      // Redémarrer le timer avec la nouvelle valeur
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      startTimer(tempInterval, () => {
+        setUpdateCycle(prev => prev + 1);
+      });
+    }
+  };
 
   // Fonction pour actualiser tous les étudiants séquentiellement avec le nouveau timer
   const updateAllStudentsSequentially = useCallback(async () => {
@@ -451,16 +479,16 @@ export default function TrackingPage() {
       // Si ce n'est pas le dernier étudiant, attendre le temps défini avant de passer au suivant
       if (i < students.length - 1) {
         await new Promise<void>(resolve => {
-          startTimer(UPDATE_INTERVAL_SECONDS, () => resolve());
+          startTimer(customInterval, () => resolve());
         });
       }
     }
 
     // Une fois tous les étudiants mis à jour, démarrer le timer pour le prochain cycle
-    startTimer(UPDATE_INTERVAL_SECONDS, () => {
+    startTimer(customInterval, () => {
       setUpdateCycle(prev => prev + 1);
     });
-  }, [students, updateStudentData, startTimer]);
+  }, [students, updateStudentData, startTimer, customInterval]);
 
   // Effet pour le chargement initial et les actualisations périodiques
   useEffect(() => {
@@ -574,9 +602,24 @@ export default function TrackingPage() {
           </Link>
           <h1 className="title">Suivi des Examens 42</h1>
         </div>
-        <div className="timer">
+        <div className="timer" onClick={() => setShowIntervalSlider(!showIntervalSlider)}>
           <span className="timer-text">Prochaine actualisation dans :</span>
           <span className="timer-value">{nextUpdate}s</span>
+          {showIntervalSlider && (
+            <div className="interval-slider-container">
+              <input
+                type="range"
+                min={MIN_UPDATE_INTERVAL}
+                max={MAX_UPDATE_INTERVAL}
+                value={tempInterval}
+                onChange={handleIntervalChange}
+                onMouseUp={handleIntervalChangeEnd}
+                onTouchEnd={handleIntervalChangeEnd}
+                className="interval-slider"
+              />
+              <span className="interval-value">{tempInterval}s</span>
+            </div>
+          )}
         </div>
       </div>
 

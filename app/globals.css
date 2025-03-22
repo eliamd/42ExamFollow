@@ -71,10 +71,18 @@ body {
 }
 
 .timer {
-  background: var(--background);
-  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  padding: 0.5rem;
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.timer:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .timer-text {
@@ -723,5 +731,100 @@ body {
   .home-button:hover {
     background-color: var(--gray-700);
     color: var(--primary-light);
+  }
+}
+
+.interval-slider-container {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background-color: var(--background);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 200px;
+  border: 1px solid var(--gray-200);
+}
+
+.interval-slider {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  background: var(--gray-300);
+  border-radius: 2px;
+  outline: none;
+}
+
+.interval-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--primary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s;
+  border: 2px solid var(--background);
+}
+
+.interval-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: var(--primary-dark);
+}
+
+.interval-value {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+@media (prefers-color-scheme: dark) {
+  .interval-slider {
+    background: var(--gray-600);
+  }
+
+  .interval-slider::-webkit-slider-thumb {
+    border-color: var(--gray-800);
+  }
+}
+
+/* Ajout des styles pour Firefox */
+.interval-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--primary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s;
+  border: 2px solid var(--background);
+}
+
+.interval-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  background: var(--primary-dark);
+}
+
+.interval-slider::-moz-range-progress {
+  background-color: var(--primary);
+  height: 4px;
+  border-radius: 2px;
+}
+
+.interval-slider::-moz-range-track {
+  background-color: var(--gray-300);
+  height: 4px;
+  border-radius: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .interval-slider::-moz-range-track {
+    background-color: var(--gray-600);
+  }
+  
+  .interval-slider::-moz-range-thumb {
+    border-color: var(--gray-800);
   }
 }
