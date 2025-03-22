@@ -16,14 +16,23 @@ export default function Confetti({ active }: ConfettiProps) {
     refAnimationInstance.current = instance;
   };
 
+  const randomInRange = (min: number, max: number) => {
+    return Math.random() * (max - min) + min;
+  };
+
   const makeShot = (angle: number, originX: number) => {
     if (refAnimationInstance.current) {
       refAnimationInstance.current({
-        particleCount: 80,
+        particleCount: 40, // Réduit pour éviter de surcharger
         angle,
-        spread: 60,
-        origin: { x: originX, y: 0.9 },
+        spread: 70,
+        origin: { x: originX, y: originX > 0.5 ? 0.2 : 0.7 }, // Dynamique pour couvrir tout l'écran
         colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
+        startVelocity: randomInRange(25, 40),
+        gravity: 0.8, // Moins de gravité pour que les confettis restent plus longtemps
+        scalar: randomInRange(0.8, 1.2), // Taille variable
+        ticks: 350, // Durée de vie des particules plus longue
+        decay: 0.93, // Ralentit la disparition des particules
       });
     }
   };
@@ -33,23 +42,50 @@ export default function Confetti({ active }: ConfettiProps) {
 
     setIsAnimating(true);
 
-    const animationId = setInterval(() => {
-      makeShot(60, 0.1);
-      makeShot(120, 0.9);
-      makeShot(90, 0.5);
-      makeShot(75, 0.3);
-      makeShot(105, 0.7);
-    }, 200);
+    // Animation initiale
+    makeShot(randomInRange(50, 70), 0.1);
+    makeShot(randomInRange(110, 130), 0.9);
+    makeShot(90, 0.5);
 
-    // Arrêter après 2 secondes
+    // Séquence d'animations sur plusieurs secondes
+    const sequence = [
+      () => {
+        makeShot(randomInRange(60, 80), 0.2);
+        makeShot(randomInRange(100, 120), 0.8);
+      },
+      () => {
+        makeShot(randomInRange(50, 70), 0.3);
+        makeShot(randomInRange(110, 130), 0.7);
+      },
+      () => {
+        makeShot(80, 0.4);
+        makeShot(100, 0.6);
+        makeShot(90, 0.5);
+      },
+      () => {
+        makeShot(randomInRange(60, 80), 0.1);
+        makeShot(randomInRange(100, 120), 0.9);
+      },
+      () => {
+        makeShot(randomInRange(50, 70), 0.2);
+        makeShot(randomInRange(110, 130), 0.8);
+        makeShot(90, 0.5);
+      }
+    ];
+
+    // Exécuter la séquence à intervalles
+    sequence.forEach((shot, index) => {
+      setTimeout(() => { shot(); }, 700 * (index + 1));
+    });
+
+    // Arrêter l'animation après 5 secondes
     setTimeout(() => {
-      clearInterval(animationId);
       setIsAnimating(false);
-    }, 2000);
+    }, 5500);
   };
 
   useEffect(() => {
-    if (active) {
+    if (active && !isAnimating) {
       fireConfetti();
     }
   }, [active]);

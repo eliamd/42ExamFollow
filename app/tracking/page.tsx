@@ -269,6 +269,8 @@ export default function TrackingPage() {
   const [completedStudents, setCompletedStudents] = useState<Record<string, boolean>>({});
   const [showConfetti, setShowConfetti] = useState(false);
   const [nextUpdate, setNextUpdate] = useState(UPDATE_INTERVAL_SECONDS);
+  const nextUpdateRef = useRef(UPDATE_INTERVAL_SECONDS); // Référence pour le timer
+  const timerRef = useRef<NodeJS.Timeout | null>(null); // Référence pour l'intervalle
   const [mounted, setMounted] = useState(false);
   const [currentUpdatingLogin, setCurrentUpdatingLogin] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -381,7 +383,51 @@ export default function TrackingPage() {
     }
   }, [playProgressSound, playCompletionSound, completedStudents]);
 
-  // Fonction pour actualiser tous les étudiants séquentiellement
+  // Fonction pour démarrer le timer avec une précision correcte
+  const startTimer = useCallback((seconds: number, onComplete: () => void) => {
+    // Nettoyer tout timer existant
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    // Initialiser les valeurs
+    nextUpdateRef.current = seconds;
+    setNextUpdate(seconds);
+
+    // Obtenir l'heure de début précise
+    const startTime = Date.now();
+    const endTime = startTime + (seconds * 1000);
+
+    // Créer un nouvel intervalle qui vérifie le temps restant toutes les 100ms
+    timerRef.current = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
+
+      // Mettre à jour l'état seulement si le nombre de secondes a changé
+      if (remaining !== nextUpdateRef.current) {
+        nextUpdateRef.current = remaining;
+        setNextUpdate(remaining);
+      }
+
+      // Si le temps est écoulé, exécuter le callback et nettoyer
+      if (remaining <= 0) {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        onComplete();
+      }
+    }, 100); // Vérifier plus fréquemment pour une mise à jour fluide
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Fonction pour actualiser tous les étudiants séquentiellement avec le nouveau timer
   const updateAllStudentsSequentially = useCallback(async () => {
     setError(null);
 
@@ -397,44 +443,47 @@ export default function TrackingPage() {
 
       // Si ce n'est pas le dernier étudiant, attendre le temps défini avant de passer au suivant
       if (i < students.length - 1) {
-        // Mettre à jour le timer
-        setNextUpdate(UPDATE_INTERVAL_SECONDS);
-
-        // Attendre le temps défini
-        await new Promise(resolve => {
-          const interval = setInterval(() => {
-            setNextUpdate(prev => {
-              if (prev <= 1) {
-                clearInterval(interval);
-                resolve(true);
-                return 0;
-              }
-              return prev - 1;
-            });
-          }, 1000);
+        await new Promise<void>(resolve => {
+          startTimer(UPDATE_INTERVAL_SECONDS, () => resolve());
         });
       }
     }
 
-    // Une fois tous les étudiants mis à jour, réinitialiser le timer
-    setNextUpdate(UPDATE_INTERVAL_SECONDS);
-
-    // Démarrer un nouveau cycle après avoir terminé
-    const timer = setTimeout(() => {
+    // Une fois tous les étudiants mis à jour, démarrer le timer pour le prochain cycle
+    startTimer(UPDATE_INTERVAL_SECONDS, () => {
       setUpdateCycle(prev => prev + 1);
-    }, UPDATE_INTERVAL_SECONDS * 1000);
-
-    return () => clearTimeout(timer);
-  }, [students, updateStudentData]);
+    });
+  }, [students, updateStudentData, startTimer]);
 
   // Effet pour le chargement initial et les actualisations périodiques
   useEffect(() => {
-    if (students.length > 0 && mounted) {
-      updateAllStudentsSequentially();
-    }
+    let isActive = true;
+    let timerCleanup: (() => void) | null = null;
+
+    // Fonction asynchrone interne pour effectuer la mise à jour
+    const performUpdate = async () => {
+      if (students.length > 0 && mounted && isActive) {
+        await updateAllStudentsSequentially();
+      }
+    };
+
+    // Appel immédiat de la fonction asynchrone
+    performUpdate();
+
+    // Fonction de nettoyage (clean-up)
+    return () => {
+      isActive = false;
+      if (timerCleanup) {
+        timerCleanup();
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [students, mounted, updateCycle, updateAllStudentsSequentially]);
 
-  // Test caché pour déclencher l'animation des 100%
+  // Test caché pour déclencher l'animation des 100% sans affecter les données
   const triggerCompletionAnimation = useCallback((login: string) => {
     // Déclencher les confettis
     setShowConfetti(false); // Réinitialiser d'abord pour s'assurer que le changement d'état sera détecté
@@ -445,22 +494,11 @@ export default function TrackingPage() {
     // Jouer le son de complétion
     playCompletionSound();
 
-    // Mettre à jour l'étudiant comme complété
-    setCompletedStudents(prev => ({
-      ...prev,
-      [login]: true
-    }));
-
     // Activer l'animation sur la carte
     setAnimatedStudents(prev => ({
       ...prev,
       [login]: true
     }));
-
-    // Désactiver les confettis après 5 secondes
-    setTimeout(() => {
-      setShowConfetti(false);
-    }, 5000);
 
     // Réinitialiser l'animation après 10 secondes
     setTimeout(() => {
@@ -471,7 +509,7 @@ export default function TrackingPage() {
     }, 10000);
   }, [playCompletionSound]);
 
-  // Test caché pour déclencher l'animation de progression
+  // Test caché pour déclencher l'animation de progression sans affecter les données
   const triggerProgressAnimation = useCallback((login: string) => {
     // Jouer le son de progression
     playProgressSound();
