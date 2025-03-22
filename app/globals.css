@@ -190,13 +190,12 @@ body {
 }
 
 .progress-label {
+  position: static; /* Annuler le positionnement absolu par défaut */
+  bottom: auto;
+  transform: none;
   font-size: 0.875rem;
   color: var(--gray-700);
-}
-
-.progress-value {
-  font-weight: 500;
-  color: var(--primary);
+  margin-bottom: 0; /* Annuler les marges qui pourraient affecter */
 }
 
 .progress-bar {
@@ -515,6 +514,10 @@ body {
     color: var(--primary-light);
     background-color: rgba(14, 165, 233, 0.2);
   }
+
+  .progress-header .progress-label {
+    color: var(--gray-200);
+  }
 }
 
 /* Indicateur de chargement pour les cartes */
@@ -723,5 +726,196 @@ body {
   .home-button:hover {
     background-color: var(--gray-700);
     color: var(--primary-light);
+  }
+}
+
+/* Styles pour les statistiques globales */
+.stats-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  background: var(--background);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.stat-item {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem;
+  min-width: 100px;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--primary);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+}
+
+/* Styles pour la course des étudiants */
+.race-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 3.5rem;
+  padding: 1.5rem 0 0.5rem 0;
+  overflow-x: auto;
+}
+
+.race-track {
+  position: relative;
+  height: 4rem;
+  width: 100%;
+  min-width: 300px;
+  background: var(--gray-100);
+  border-radius: var(--border-radius-full);
+}
+
+.finish-line {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 50px;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      #000 0,
+      #000 5px,
+      #fff 5px,
+      #fff 10px
+    );
+  border-top-right-radius: var(--border-radius-full);
+  border-bottom-right-radius: var(--border-radius-full);
+}
+
+.racer {
+  position: absolute;
+  top: -1.25rem;
+  transform: translateX(-50%);
+  transition: all 0.5s ease-in-out;
+  z-index: 1;
+}
+
+.racer-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--background);
+  box-shadow: var(--shadow);
+  background: var(--background);
+}
+
+.racer-info {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-dark);
+  margin-top: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: var(--border-radius-sm);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.progress-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1rem;
+  color: var(--gray-500);
+  font-size: 0.75rem;
+}
+
+.progress-marker {
+  position: absolute;
+  height: 100%;
+  width: 1px;
+  background-color: var(--gray-300);
+}
+
+.progress-marker-25 { left: 25%; }
+.progress-marker-50 { left: 50%; }
+.progress-marker-75 { left: 75%; }
+
+.progress-track-label {
+  position: absolute;
+  bottom: -1.5rem;
+  transform: translateX(-50%);
+  color: var(--gray-500);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.progress-track-label-0 { left: 0; }
+.progress-track-label-25 { left: 25%; }
+.progress-track-label-50 { left: 50%; }
+.progress-track-label-75 { left: 75%; }
+.progress-track-label-100 { left: 100%; }
+
+@media (prefers-color-scheme: dark) {
+  .stats-container {
+    background: var(--gray-800);
+  }
+
+  .stat-label {
+    color: var(--gray-400);
+  }
+
+  .race-track {
+    background: var(--gray-800);
+  }
+
+  .finish-line {
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        #111 0,
+        #111 5px,
+        #eee 5px,
+        #eee 10px
+      );
+  }
+
+  .progress-indicator {
+    color: var(--gray-400);
+  }
+
+  .progress-marker {
+    background-color: var(--gray-600);
+  }
+
+  .progress-label {
+    color: var(--gray-400);
+  }
+
+  .progress-header .progress-label {
+    color: var(--gray-200);
+  }
+
+  .racer-info {
+    color: var(--primary-light);
+    background-color: rgba(31, 41, 55, 0.85);
+  }
+
+  .progress-track-label {
+    color: var(--gray-400);
   }
 }
