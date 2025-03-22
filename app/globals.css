@@ -26,6 +26,7 @@
   --border-radius-md: 0.5rem;
   --border-radius-lg: 0.75rem;
   --border-radius-full: 9999px;
+  --gray-50: #f9fafb;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -559,4 +560,119 @@ body {
 
 .rainbow-shadow {
   animation: rainbow-shadow 3s linear infinite;
+}
+
+/* Styles pour la section historique */
+.history-section {
+  margin-top: 2rem;
+  border-top: 1px solid var(--gray-200);
+  padding-top: 1.5rem;
+}
+
+.history-title {
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+  color: var(--gray-700);
+  margin-bottom: 1rem;
+}
+
+.history-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.5rem;
+  color: var(--primary);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  background-color: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  transition: background-color 0.2s;
+}
+
+.history-item:hover {
+  background-color: var(--gray-100);
+}
+
+.history-item-content {
+  flex: 1;
+  cursor: pointer;
+}
+
+.history-date {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  margin-bottom: 0.25rem;
+}
+
+.history-students {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.history-student-tag {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  background-color: rgba(14, 165, 233, 0.1);
+  color: var(--primary-dark);
+  border-radius: var(--border-radius-full);
+}
+
+.history-delete {
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  padding: 0.375rem;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.history-delete:hover {
+  color: var(--error);
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.history-delete-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Mode sombre pour l'historique */
+@media (prefers-color-scheme: dark) {
+  .history-section {
+    border-top-color: var(--gray-700);
+  }
+
+  .history-title {
+    color: var(--gray-200);
+  }
+
+  .history-item {
+    background-color: var(--gray-800);
+    border-color: var(--gray-700);
+  }
+
+  .history-item:hover {
+    background-color: var(--gray-700);
+  }
+
+  .history-date {
+    color: var (--gray-400);
+  }
+
+  .history-delete:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+  }
 }

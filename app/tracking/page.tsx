@@ -7,7 +7,7 @@ import Confetti from '../components/Confetti';
 import { useSound } from 'use-sound';
 
 // Constante configurable pour le temps d'actualisation en secondes
-const UPDATE_INTERVAL_SECONDS = 45;
+const UPDATE_INTERVAL_SECONDS = 10;
 // Constantes pour la gestion des retries
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000; // 2 secondes
