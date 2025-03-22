@@ -5,6 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import Confetti from '../components/Confetti';
 import { useSound } from 'use-sound';
+import { HomeIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../components/AuthProvider';
+import Link from 'next/link';
 
 // Constante configurable pour le temps d'actualisation en secondes
 const UPDATE_INTERVAL_SECONDS = 10;
@@ -113,6 +116,8 @@ async function fetchWithRetry(url: string, options: any, retries = MAX_RETRIES, 
 async function fetchStudentData(login: string): Promise<Student> {
   const token = localStorage.getItem('42_access_token');
   if (!token) {
+    // Si pas de token, rediriger vers la page de login
+    window.location.href = '/';
     throw new Error('Non authentifié');
   }
 
@@ -217,7 +222,10 @@ async function fetchStudentData(login: string): Promise<Student> {
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          throw new Error('Token d\'authentification invalide ou expiré. Veuillez vous reconnecter.');
+          // Token expiré - rediriger vers la page d'accueil pour réauthentification
+          localStorage.removeItem('42_access_token'); // Supprimer le token invalide
+          window.location.href = '/';
+          throw new Error('Token d\'authentification invalide ou expiré. Vous allez être redirigé vers la page de connexion.');
         case 403:
           throw new Error('Vous n\'avez pas les permissions nécessaires pour accéder à ces données.');
         case 404:
@@ -275,6 +283,7 @@ export default function TrackingPage() {
   const [currentUpdatingLogin, setCurrentUpdatingLogin] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [updateCycle, setUpdateCycle] = useState(0);
+  const { login } = useAuth();
 
   // Sons
   const [playProgressSound] = useSound('/sounds/progress.mp3', { volume: 0.5 });
@@ -529,15 +538,27 @@ export default function TrackingPage() {
     }, 10000);
   }, [playProgressSound]);
 
+  // En cas d'erreur d'authentification, proposer de se reconnecter
+  const handleReconnect = () => {
+    login(); // Utiliser la fonction login du AuthProvider
+  };
+
   if (!mounted) {
     return null;
   }
 
   if (error && Object.keys(studentsData).length === 0) {
+    const isAuthError = error.includes('Token') || error.includes('authentifi');
+
     return (
       <div className="container">
         <div className="error-message">
           {error}
+          {isAuthError && (
+            <button onClick={handleReconnect} className="btn btn-primary reconnect-btn">
+              Se reconnecter
+            </button>
+          )}
         </div>
       </div>
     );
@@ -549,7 +570,12 @@ export default function TrackingPage() {
       <Confetti active={showConfetti} />
 
       <div className="header">
-        <h1 className="title">Suivi des Examens 42</h1>
+        <div className="header-left">
+          <Link href="/" className="home-button" title="Retour à l'accueil">
+            <HomeIcon className="home-icon" />
+          </Link>
+          <h1 className="title">Suivi des Examens 42</h1>
+        </div>
         <div className="timer">
           <span className="timer-text">Prochaine actualisation dans :</span>
           <span className="timer-value">{nextUpdate}s</span>
