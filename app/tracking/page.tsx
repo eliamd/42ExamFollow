@@ -10,7 +10,7 @@ import { useAuth } from '../components/AuthProvider';
 import Link from 'next/link';
 
 // Constante configurable pour le temps d'actualisation en secondes
-const UPDATE_INTERVAL_SECONDS = 10;
+const UPDATE_INTERVAL_SECONDS = 40;
 // Constantes pour la gestion des retries
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000; // 2 secondes
@@ -142,6 +142,7 @@ async function fetchStudentData(login: string): Promise<Student> {
       authHeaders
     );
 
+    console.log(projectsResponse.data);
     console.log('Nombre total de projets:', projectsResponse.data.length);
 
     // Reste du code inchangé
@@ -152,20 +153,34 @@ async function fetchStudentData(login: string): Promise<Student> {
       return isExam;
     });
 
-    // Trouver la dernière tentative (la plus récente)
-    const lastExamAttempt = examAttempts.length > 0 ?
-      examAttempts.reduce((latest: any, current: any) => {
-        const latestDate = new Date(latest.created_at);
-        const currentDate = new Date(current.created_at);
-        return currentDate > latestDate ? current : latest;
-      }, examAttempts[0]) : null;
+    // Trouver la tentative la plus récente en regardant dans toutes les équipes
+    let lastExamAttempt = null;
+    let mostRecentDate = new Date(0); // Date initiale très ancienne
+
+    for (const attempt of examAttempts) {
+      if (attempt.teams && attempt.teams.length > 0) {
+        // Parcourir toutes les équipes de la tentative
+        for (const team of attempt.teams) {
+          const teamDate = new Date(team.updated_at);
+          if (teamDate > mostRecentDate) {
+            mostRecentDate = teamDate;
+            lastExamAttempt = {
+              ...attempt,
+              team: team // Ajouter l'équipe la plus récente
+            };
+          }
+        }
+      }
+    }
 
     console.log('Dernière tentative trouvée:', lastExamAttempt ? {
       name: lastExamAttempt.project.name,
       final_mark: lastExamAttempt.final_mark,
       validated: lastExamAttempt["validated?"],
       status: lastExamAttempt.status,
-      created_at: lastExamAttempt.created_at
+      updated_at: lastExamAttempt.team.updated_at,
+      team_name: lastExamAttempt.team.name,
+      team_final_mark: lastExamAttempt.team.final_mark
     } : 'Aucune tentative trouvée');
 
     let progress = 0;
@@ -174,27 +189,10 @@ async function fetchStudentData(login: string): Promise<Student> {
 
     if (lastExamAttempt) {
       currentExam = lastExamAttempt.project.name;
-
-      if (lastExamAttempt.final_mark !== null) {
-        progress = lastExamAttempt.final_mark;
-        status = lastExamAttempt["validated?"] ? 'réussi' : 'échoué';
-      } else if (lastExamAttempt.status === 'finished') {
-        progress = 100;
-        status = 'en attente de correction';
-      } else if (lastExamAttempt.status === 'in_progress') {
-        const now = new Date();
-        const startDate = new Date(lastExamAttempt.created_at);
-        const examDuration = 3 * 60 * 60 * 1000; // 3 heures
-        const timeElapsed = now.getTime() - startDate.getTime();
-
-        if (timeElapsed < examDuration) {
-          progress = Math.min(100, Math.round((timeElapsed / examDuration) * 100));
-          status = 'en cours';
-        } else {
-          progress = 100;
-          status = 'terminé';
-        }
-      }
+      progress = lastExamAttempt.team.final_mark || 0;
+      status = lastExamAttempt.team["validated?"] ? 'réussi' : 
+               lastExamAttempt.team.status === 'finished' ? 'échoué' : 
+               lastExamAttempt.team.status === 'in_progress' ? 'en cours' : 'non commencé';
     }
 
     console.log(`=== Résumé final pour ${login} ===`);
@@ -202,7 +200,7 @@ async function fetchStudentData(login: string): Promise<Student> {
       currentExam,
       progress,
       status,
-      lastAttemptDate: lastExamAttempt?.created_at
+      lastAttemptDate: lastExamAttempt?.team.updated_at
     });
 
     return {
@@ -212,7 +210,7 @@ async function fetchStudentData(login: string): Promise<Student> {
       progress,
       status,
       projectUsers: lastExamAttempt,
-      lastAttemptDate: lastExamAttempt?.created_at,
+      lastAttemptDate: lastExamAttempt?.team.updated_at,
       currentExam
     };
   } catch (error: any) {
