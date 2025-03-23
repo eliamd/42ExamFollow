@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { MagnifyingGlassIcon, ClockIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useAuth } from './components/AuthProvider';
 import UserSearch from './components/UserSearch';
+import ExamSelector from './components/ExamSelector';
 
 // Interface pour stocker les groupes dans l'historique
 interface HistoryGroup {
@@ -137,7 +138,10 @@ export default function Home() {
           Suivez la progression des étudiants en temps réel
         </p>
 
-        <UserSearch onSelectUser={handleAddStudent} />
+        <div className="search-section">
+          <ExamSelector onSelectUser={handleAddStudent} />
+          <UserSearch onSelectUser={handleAddStudent} />
+        </div>
 
         {students.length > 0 && (
           <div>

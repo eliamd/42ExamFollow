@@ -48,7 +48,14 @@ function resetApiCounterIfHourChanged() {
 
   // Récupérer la dernière heure enregistrée
   const lastHourStr = localStorage.getItem('42_api_last_hour');
-  const lastHour = lastHourStr ? parseInt(lastHourStr, 10) : currentHour;
+
+  // S'il n'y a pas d'heure enregistrée, l'enregistrer maintenant
+  if (!lastHourStr) {
+    localStorage.setItem('42_api_last_hour', currentHour.toString());
+    return;
+  }
+
+  const lastHour = parseInt(lastHourStr, 10);
 
   // Si l'heure a changé, réinitialiser le compteur
   if (currentHour !== lastHour) {
@@ -258,6 +265,15 @@ export function initApiCounter(): number {
   const savedCount = localStorage.getItem('42_api_calls_count');
   if (savedCount) {
     totalApiCalls = parseInt(savedCount);
+  } else {
+    // Si pas de valeur sauvegardée, initialiser à 0
+    localStorage.setItem('42_api_calls_count', '0');
+  }
+
+  // Ajouter l'heure actuelle si elle n'existe pas encore
+  if (!localStorage.getItem('42_api_last_hour')) {
+    const currentHour = new Date().getHours();
+    localStorage.setItem('42_api_last_hour', currentHour.toString());
   }
 
   // Vérifier si l'heure a changé et réinitialiser si nécessaire
@@ -270,5 +286,7 @@ export function initApiCounter(): number {
  * Retourne le nombre actuel d'appels API
  */
 export function getApiCallCount(): number {
+  // Vérifie aussi si l'heure a changé avant de renvoyer le compteur
+  resetApiCounterIfHourChanged();
   return totalApiCalls;
 }
