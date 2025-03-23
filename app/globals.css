@@ -1687,3 +1687,33 @@ body {
     border-color: var(--primary);
   }
 }
+
+.remove-student-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: rgba(255, 0, 0, 0.1);
+  color: #ff4444;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+  z-index: 10;
+}
+
+.student-card:hover .remove-student-btn {
+  opacity: 1;
+}
+
+.remove-student-btn:hover {
+  background-color: rgba(255, 0, 0, 0.2);
+  transform: scale(1.1);
+}
