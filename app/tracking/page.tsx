@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import Confetti from '../components/Confetti';
@@ -206,8 +206,8 @@ async function fetchStudentData(login: string): Promise<Student> {
     if (lastExamAttempt) {
       currentExam = lastExamAttempt.project.name;
       progress = lastExamAttempt.team.final_mark || 0;
-      status = lastExamAttempt.team["validated?"] ? 'Réussi' : 
-               lastExamAttempt.team.status === 'finished' ? 'Échoué' : 
+      status = lastExamAttempt.team["validated?"] ? 'Réussi' :
+               lastExamAttempt.team.status === 'finished' ? 'Échoué' :
                lastExamAttempt.team.status === 'in_progress' ? 'En cours' : 'non commencé';
     }
 
