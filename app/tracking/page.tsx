@@ -129,6 +129,8 @@ export default function TrackingPage() {
   const [previousProgress, setPreviousProgress] = useState<Record<string, number>>({});
   const [animatedStudents, setAnimatedStudents] = useState<Record<string, boolean>>({});
   const [completedStudents, setCompletedStudents] = useState<Record<string, boolean>>({});
+  // Nouvel état pour suivre les étudiants qui ont terminé et ne doivent plus être actualisés
+  const [finishedStudents, setFinishedStudents] = useState<Record<string, boolean>>({});
   const [showConfetti, setShowConfetti] = useState(false);
 
   // Remplacer UPDATE_INTERVAL_SECONDS par BASE_UPDATE_INTERVAL
@@ -240,6 +242,12 @@ export default function TrackingPage() {
                 [login]: true
               }));
 
+              // Marquer l'étudiant comme terminé pour ne plus l'actualiser automatiquement
+              setFinishedStudents(prev => ({
+                ...prev,
+                [login]: true
+              }));
+
               // Déclencher les confettis avec le même pattern de réinitialisation
               setShowConfetti(false);
               setTimeout(() => {
@@ -256,6 +264,12 @@ export default function TrackingPage() {
             }
             // Si le statut est passé à "Réussi", jouer le son de complétion
             else if (newStatus === 'Réussi' && prevStatus !== 'Réussi') {
+              // Marquer l'étudiant comme terminé car "Réussi" signifie aussi 100%
+              setFinishedStudents(prev => ({
+                ...prev,
+                [login]: true
+              }));
+
               playCompletionSound();
             }
             // Si le statut est passé de "En cours" à "Échoué", jouer le son d'erreur
@@ -290,6 +304,14 @@ export default function TrackingPage() {
                 [login]: false
               }));
             }, animationDuration);
+          }
+        } else {
+          // Au premier chargement, si l'étudiant a déjà 100% ou est "Réussi", marquer comme terminé
+          if (studentData.progress === 100 || studentData.status === 'Réussi') {
+            setFinishedStudents(prev => ({
+              ...prev,
+              [login]: true
+            }));
           }
         }
 
@@ -393,6 +415,13 @@ export default function TrackingPage() {
 
     for (let i = 0; i < students.length; i++) {
       const login = students[i];
+
+      // Skip les étudiants qui ont terminé leur examen (100%)
+      if (finishedStudents[login]) {
+        console.log(`⏭️ ${login} a terminé son examen, actualisation automatique ignorée`);
+        continue;
+      }
+
       const success = await updateStudentData(login);
 
       // Si la mise à jour a échoué, arrêtez la séquence et attendez le prochain cycle
@@ -413,7 +442,7 @@ export default function TrackingPage() {
     startTimer(customInterval, () => {
       setUpdateCycle(prev => prev + 1);
     });
-  }, [students, updateStudentData, startTimer, customInterval]);
+  }, [students, updateStudentData, startTimer, customInterval, finishedStudents]);
 
   // Effet pour le chargement initial et les actualisations périodiques
   useEffect(() => {
@@ -554,6 +583,11 @@ export default function TrackingPage() {
       delete newCompleted[loginToRemove];
       return newCompleted;
     });
+    setFinishedStudents(prev => {
+      const newFinished = { ...prev };
+      delete newFinished[loginToRemove];
+      return newFinished;
+    });
     setFailedStudents(prev => {
       const newFailed = { ...prev };
       delete newFailed[loginToRemove];
@@ -664,27 +698,29 @@ export default function TrackingPage() {
             return (
               <div
                 key={studentData.id}
-                className={`student-card ${isAnimated ? 'card-bounce rainbow-shadow' : ''} ${isFailed ? 'failure-shadow' : ''}`}
+                className={`student-card ${isAnimated ? 'card-bounce rainbow-shadow' : ''} ${isFailed ? 'failure-shadow' : ''} ${finishedStudents[login] ? 'finished-student' : ''}`}
                 onDoubleClick={() => {
-                  // Gardez uniquement la fonction de mise à jour et supprimez le nettoyage du cache
+                  // Toujours permettre l'actualisation manuelle même pour les étudiants terminés
                   updateStudentData(login);
                 }}
                 title="Double-cliquez pour actualiser les données"
               >
+                {/* Ajouter un indicateur visuel pour les étudiants terminés */}
+                {finishedStudents[login] && (
+                  <div className="finished-badge" title="Examen terminé - Actualisation automatique désactivée">✓</div>
+                )}
+
                 {isUpdating && (
                   <div
                     className="loading-indicator"
                     title="Actualisation des données en cours..."
                   >
-                    <div className="loader-dots">
-                      <div className="loader-dot"></div>
-                      <div className="loader-dot"></div>
-                      <div className="loader-dot"></div>
-                    </div>
+                    {/* Remplacer l'ancien loader-dots par le nouveau spinner-ring */}
+                    <div className="spinner-ring"></div>
                   </div>
                 )}
 
-                <button 
+                <button
                   className="remove-student-btn"
                   onClick={() => removeStudent(login)}
                   title="Supprimer cet étudiant"
