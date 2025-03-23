@@ -198,13 +198,12 @@ body {
 }
 
 .progress-label {
+  position: static; /* Annuler le positionnement absolu par défaut */
+  bottom: auto;
+  transform: none;
   font-size: 0.875rem;
   color: var(--gray-700);
-}
-
-.progress-value {
-  font-weight: 500;
-  color: var(--primary);
+  margin-bottom: 0; /* Annuler les marges qui pourraient affecter */
 }
 
 .progress-bar {
@@ -522,6 +521,10 @@ body {
   .tag {
     color: var(--primary-light);
     background-color: rgba(14, 165, 233, 0.2);
+  }
+
+  .progress-header .progress-label {
+    color: var(--gray-200);
   }
 }
 
@@ -871,5 +874,6 @@ body {
   .interval-slider::-moz-range-thumb {
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
     border-color: var(--gray-800);
+
   }
 }
