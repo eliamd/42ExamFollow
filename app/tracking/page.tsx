@@ -23,6 +23,32 @@ const userDataCache: Record<string, { id: number; login: string; image: any }> =
 // Variable globale pour compter les requêtes API
 let totalApiCalls = 0;
 
+// Tableau d'ordre des examens du plus ancien au plus récent
+const EXAM_ORDER = [
+  "C Piscine Exam 00",
+  "C Piscine Exam 01",
+  "C Piscine Exam 02",
+  "C Piscine Final Exam",
+  "Exam Rank 02",
+  "Exam Rank 03",
+  "Exam Rank 04",
+  "Exam Rank 05",
+  "Exam Rank 06"
+];
+
+// Fonction pour déterminer si un projet est un examen
+function isExam(projectName: string): boolean {
+  return projectName.includes("Exam Rank") ||
+         projectName.includes("C Piscine Exam") ||
+         projectName === "C Piscine Final Exam";
+}
+
+// Fonction pour obtenir la valeur d'ordre d'un examen (plus grand = plus récent)
+function getExamOrder(examName: string): number {
+  const index = EXAM_ORDER.findIndex(name => examName.includes(name));
+  return index === -1 ? -1 : index;
+}
+
 interface Student {
   id: number;
   login: string;
@@ -170,28 +196,36 @@ async function fetchStudentData(login: string): Promise<Student> {
     console.log(projectsResponse.data);
     console.log('Nombre total de projets:', projectsResponse.data.length);
 
-    // Reste du code inchangé
+    // Filtrer les examens en utilisant la nouvelle fonction isExam
     const examAttempts = projectsResponse.data.filter((project: any) => {
       const projectName = project.project.name;
-      const isExam = projectName.includes('Exam Rank');
-      console.log(`Projet: ${projectName} - Est un examen: ${isExam} - Note: ${project.final_mark} - Validé: ${project["validated?"]}`);
-      return isExam;
+      const isExamProject = isExam(projectName);
+      console.log(`Projet: ${projectName} - Est un examen: ${isExamProject} - Note: ${project.final_mark} - Validé: ${project["validated?"]}`);
+      return isExamProject;
     });
 
     // Trouver la tentative la plus récente en regardant dans toutes les équipes
     let lastExamAttempt = null;
     let mostRecentDate = new Date(0); // Date initiale très ancienne
+    let highestExamOrder = -1; // Pour conserver l'examen le plus avancé
 
     for (const attempt of examAttempts) {
       if (attempt.teams && attempt.teams.length > 0) {
         // Parcourir toutes les équipes de la tentative
         for (const team of attempt.teams) {
           const teamDate = new Date(team.updated_at);
-          if (teamDate > mostRecentDate) {
+          const examOrder = getExamOrder(attempt.project.name);
+
+          // Priorité 1: examen plus avancé dans l'ordre
+          // Priorité 2: si même niveau d'examen, prendre la date la plus récente
+          if (examOrder > highestExamOrder ||
+              (examOrder === highestExamOrder && teamDate > mostRecentDate)) {
             mostRecentDate = teamDate;
+            highestExamOrder = examOrder;
             lastExamAttempt = {
               ...attempt,
-              team: team // Ajouter l'équipe la plus récente
+              team: team,
+              examOrder: examOrder // Ajouter l'ordre de l'examen pour référence
             };
           }
         }
