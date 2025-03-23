@@ -206,8 +206,8 @@ async function fetchStudentData(login: string): Promise<Student> {
     if (lastExamAttempt) {
       currentExam = lastExamAttempt.project.name;
       progress = lastExamAttempt.team.final_mark || 0;
-      status = lastExamAttempt.team["validated?"] ? 'Réussi' : 
-               lastExamAttempt.team.status === 'finished' ? 'Échoué' : 
+      status = lastExamAttempt.team["validated?"] ? 'Réussi' :
+               lastExamAttempt.team.status === 'finished' ? 'Échoué' :
                lastExamAttempt.team.status === 'in_progress' ? 'En cours' : 'non commencé';
     }
 
@@ -583,38 +583,6 @@ export default function TrackingPage() {
     login(); // Utiliser la fonction login du AuthProvider
   };
 
-  // Calculer les statistiques globales
-  const calculateStats = useCallback(() => {
-    if (!students.length) return { total: 0, average: 0, completed: 0, inProgress: 0 };
-
-    const studentsWithData = Object.values(studentsData);
-    if (!studentsWithData.length) return { total: students.length, average: 0, completed: 0, inProgress: 0 };
-
-    const total = studentsWithData.length;
-    const progressSum = studentsWithData.reduce((acc, student) => acc + student.progress, 0);
-    const average = Math.round(progressSum / total);
-    const completed = studentsWithData.filter(student => student.progress === 100).length;
-    const inProgress = studentsWithData.filter(student =>
-      student.progress > 0 && student.progress < 100 &&
-      student.status.toLowerCase().includes('cours')
-    ).length;
-
-    return { total, average, completed, inProgress };
-  }, [students, studentsData]);
-
-  const stats = calculateStats();
-
-  // Trier les étudiants par progression pour la course
-  const racers = useMemo(() => {
-    return Object.values(studentsData)
-      .sort((a, b) => b.progress - a.progress)
-      .map(student => ({
-        login: student.login,
-        image: student.image?.versions?.small || student.image?.link || 'https://cdn.intra.42.fr/users/default.png',
-        progress: student.progress
-      }));
-  }, [studentsData]);
-
   if (!mounted) {
     return null;
   }
@@ -669,68 +637,6 @@ export default function TrackingPage() {
               <span className="interval-value">{tempInterval}s</span>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Statistiques globales */}
-      <div className="stats-container">
-        <div className="stat-item">
-          <div className="stat-value">{stats.total}</div>
-          <div className="stat-label">Étudiants</div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-value">{stats.average}%</div>
-          <div className="stat-label">Progression moyenne</div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-value">{stats.completed}</div>
-          <div className="stat-label">Terminé</div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-value">{stats.inProgress}</div>
-          <div className="stat-label">En cours</div>
-        </div>
-      </div>
-
-      {/* Course des étudiants - Utiliser uniquement progress-track-label */}
-      <div className="race-container">
-        <div className="race-track">
-          {/* Marqueurs de progression */}
-          <div className="progress-marker progress-marker-25"></div>
-          <div className="progress-marker progress-marker-50"></div>
-          <div className="progress-marker progress-marker-75"></div>
-
-          {/* Labels de progression - assurer que toutes les classes utilisent progress-track-label */}
-          <div className="progress-track-label progress-track-label-0">0%</div>
-          <div className="progress-track-label progress-track-label-25">25%</div>
-          <div className="progress-track-label progress-track-label-50">50%</div>
-          <div className="progress-track-label progress-track-label-75">75%</div>
-          <div className="progress-track-label progress-track-label-100">100%</div>
-
-          {/* Ligne d'arrivée */}
-          <div className="finish-line"></div>
-
-          {/* Photos des étudiants */}
-          {racers.map(racer => (
-            <div
-              key={`racer-${racer.login}`}
-              className="racer"
-              style={{
-                left: `${Math.min(98, Math.max(2, racer.progress))}%`
-              }}
-            >
-              <img
-                src={racer.image}
-                alt={racer.login}
-                className="racer-avatar"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'https://cdn.intra.42.fr/users/default.png';
-                }}
-              />
-              <div className="racer-info">{racer.login}</div>
-            </div>
-          ))}
         </div>
       </div>
 
