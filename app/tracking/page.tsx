@@ -17,14 +17,38 @@ import {
   getExamOrder,
   getStatusClass,
   getProgressClass,
-  formatDate
+  formatDate,
+  clearStudentCache,  // Ajouter ces nouvelles fonctions
+  clearAllCache
 } from '../utils/apiUtils';
 
-// Constante configurable pour le temps d'actualisation en secondes
-const UPDATE_INTERVAL_SECONDS = 4;
-// Constantes pour la gestion des retries
-const MIN_UPDATE_INTERVAL = 1; // 1 seconde minimum
-const MAX_UPDATE_INTERVAL = 100; // 100 secondes maximum
+// Constantes pour la gestion des requêtes API et des intervalles
+const BASE_UPDATE_INTERVAL = 4; // Intervalle minimum de base en secondes
+const MIN_UPDATE_INTERVAL = 1;  // Minimum absolu pour l'interface utilisateur
+const MAX_UPDATE_INTERVAL = 100; // Maximum pour l'interface utilisateur
+const API_HOURLY_LIMIT = 1200;   // Limite d'API par heure
+const API_SAFETY_MARGIN = 50;    // Marge de sécurité à conserver
+const REQUESTS_PER_STUDENT = 1;  // Une seule requête par étudiant grâce au cache
+
+/**
+ * Calcule l'intervalle optimal de mise à jour en fonction du nombre d'étudiants
+ * pour ne pas dépasser la limite de requêtes API
+ */
+const calculateOptimalInterval = (studentCount: number): number => {
+  if (studentCount === 0) return BASE_UPDATE_INTERVAL;
+
+  // Nombre total de requêtes disponibles par heure avec marge de sécurité
+  const availableRequests = API_HOURLY_LIMIT - API_SAFETY_MARGIN;
+
+  // Nombre de cycles possibles par heure = requêtes disponibles / requêtes par cycle
+  const cyclesPerHour = availableRequests / (studentCount * REQUESTS_PER_STUDENT);
+
+  // Intervalle en secondes = nombre de secondes dans une heure / cycles par heure
+  const intervalSeconds = Math.ceil(3600 / cyclesPerHour);
+
+  // Retourner au moins l'intervalle de base
+  return Math.max(BASE_UPDATE_INTERVAL, intervalSeconds);
+};
 
 // Cache des utilisateurs en mémoire pour cette session
 const userDataCache: Record<string, { id: number; login: string; image: any }> = {};
@@ -106,11 +130,14 @@ export default function TrackingPage() {
   const [animatedStudents, setAnimatedStudents] = useState<Record<string, boolean>>({});
   const [completedStudents, setCompletedStudents] = useState<Record<string, boolean>>({});
   const [showConfetti, setShowConfetti] = useState(false);
-  const [nextUpdate, setNextUpdate] = useState(UPDATE_INTERVAL_SECONDS);
+
+  // Remplacer UPDATE_INTERVAL_SECONDS par BASE_UPDATE_INTERVAL
+  const [nextUpdate, setNextUpdate] = useState(BASE_UPDATE_INTERVAL);
   const [showIntervalSlider, setShowIntervalSlider] = useState(false);
-  const [customInterval, setCustomInterval] = useState(UPDATE_INTERVAL_SECONDS);
-  const [tempInterval, setTempInterval] = useState(UPDATE_INTERVAL_SECONDS);
-  const nextUpdateRef = useRef(UPDATE_INTERVAL_SECONDS);
+  const [customInterval, setCustomInterval] = useState(BASE_UPDATE_INTERVAL);
+  const [tempInterval, setTempInterval] = useState(BASE_UPDATE_INTERVAL);
+
+  const nextUpdateRef = useRef(BASE_UPDATE_INTERVAL);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
   const [currentUpdatingLogin, setCurrentUpdatingLogin] = useState<string | null>(null);
@@ -133,7 +160,21 @@ export default function TrackingPage() {
   useEffect(() => {
     const studentsParam = searchParams.get('students');
     if (studentsParam) {
-      setStudents(studentsParam.split(','));
+      const studentsList = studentsParam.split(',');
+      setStudents(studentsList);
+
+      // Calculer l'intervalle optimal en fonction du nombre d'étudiants
+      const optimalInterval = calculateOptimalInterval(studentsList.length);
+
+      // Mettre à jour l'intervalle personnalisé avec la valeur optimale
+      setCustomInterval(optimalInterval);
+      setTempInterval(optimalInterval);
+      setNextUpdate(optimalInterval);
+
+      // Mettre à jour la référence également
+      nextUpdateRef.current = optimalInterval;
+
+      console.log(`Nombre d'étudiants: ${studentsList.length}, intervalle optimal: ${optimalInterval}s`);
     }
   }, [searchParams]);
 
@@ -156,8 +197,14 @@ export default function TrackingPage() {
   // Fonction pour actualiser un étudiant spécifique
   const updateStudentData = useCallback(async (login: string) => {
     try {
+      console.log(`🔄 Début de mise à jour pour: ${login}`);
       setCurrentUpdatingLogin(login);
+
+      // Délai artificiel pour s'assurer que le loader s'affiche
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       const studentData = await fetchStudentData(login);
+      console.log(`✅ Données récupérées avec succès pour: ${login}`);
 
       setStudentsData(prevData => {
         const prevStudent = prevData[login];
@@ -254,23 +301,24 @@ export default function TrackingPage() {
 
       return true;
     } catch (err: any) {
-      console.error(`Erreur lors de la mise à jour des données pour ${login}:`, err);
-
-      // Message d'erreur plus informatif
-      const errorMessage = err.message || 'Erreur lors de la mise à jour des données. Veuillez vérifier votre connexion à l\'API 42.';
+      console.error(`❌ ERREUR pour ${login}:`, err);
+      const errorMessage = err.message || 'Erreur lors de la mise à jour des données.';
       setError(errorMessage);
 
-      // Ajouter un délai plus long en cas d'erreur 429
       if (err.response && err.response.status === 429) {
-        // Attendre une minute avant de continuer
+        console.warn(`⚠️ Limite de requêtes API atteinte, pause d'une minute`);
         await new Promise(resolve => setTimeout(resolve, 60000));
       }
 
       return false;
     } finally {
+      // Attendre un peu avant de retirer l'indicateur de chargement
+      await new Promise(resolve => setTimeout(resolve, 500));
       setCurrentUpdatingLogin(null);
+      console.log(`🏁 Fin de mise à jour pour: ${login}`);
     }
   }, [playProgressSound, playCompletionSound, playErrorSound, completedStudents, animationDuration]);
+
 
   // Fonction pour démarrer le timer avec une précision correcte
   const startTimer = useCallback((seconds: number, onComplete: () => void) => {
@@ -534,9 +582,16 @@ export default function TrackingPage() {
                 <span className="countdown-label">s</span>
               </div>
 
+              {/* Suppression du bouton de rafraîchissement forcé */}
+
               {showIntervalSlider && (
                 <div className="interval-popover">
-                  <div className="interval-header">Fréquence d'actualisation</div>
+                  <div className="interval-header">
+                    Fréquence d'actualisation
+                    <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: '0.25rem' }}>
+                      Recommandé: {calculateOptimalInterval(students.length)}s pour {students.length} étudiant{students.length > 1 ? 's' : ''}
+                    </div>
+                  </div>
                   <input
                     type="range"
                     min={MIN_UPDATE_INTERVAL}
@@ -568,6 +623,7 @@ export default function TrackingPage() {
             const studentData = studentsData[login];
             const isAnimated = animatedStudents[login];
             const isFailed = failedStudents[login];
+            const isUpdating = currentUpdatingLogin === login;
 
             // Si nous n'avons pas encore les données de cet étudiant, afficher un squelette
             if (!studentData) {
@@ -579,10 +635,25 @@ export default function TrackingPage() {
               <div
                 key={studentData.id}
                 className={`student-card ${isAnimated ? 'card-bounce rainbow-shadow' : ''} ${isFailed ? 'failure-shadow' : ''}`}
+                onDoubleClick={() => {
+                  // Gardez uniquement la fonction de mise à jour et supprimez le nettoyage du cache
+                  updateStudentData(login);
+                }}
+                title="Double-cliquez pour actualiser les données"
               >
-                {currentUpdatingLogin === login && (
-                  <div className="loading-indicator" title="Actualisation des données en cours..."></div>
+                {isUpdating && (
+                  <div
+                    className="loading-indicator"
+                    title="Actualisation des données en cours..."
+                  >
+                    <div className="loader-dots">
+                      <div className="loader-dot"></div>
+                      <div className="loader-dot"></div>
+                      <div className="loader-dot"></div>
+                    </div>
+                  </div>
                 )}
+
                 <div className="student-header">
                   <div className="student-avatar">
                     <img
