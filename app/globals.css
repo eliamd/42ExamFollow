@@ -70,6 +70,22 @@ body {
   color: var(--primary);
 }
 
+/* Style pour le conteneur du timer et du compteur API */
+.timer-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: var(--background);
+  padding: 0.5rem;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-md);
+  transition: box-shadow 0.3s ease;
+}
+
+.timer-container:hover {
+  box-shadow: var(--shadow-lg);
+}
+
 .timer {
   display: flex;
   align-items: center;
@@ -79,6 +95,7 @@ body {
   border-radius: 0.5rem;
   transition: background-color 0.2s;
   position: relative;
+  background-color: transparent; /* Pour ne pas avoir d'effet de double fond */
 }
 
 .timer:hover {
@@ -94,6 +111,39 @@ body {
   color: var(--primary);
   font-family: monospace;
   margin-left: 0.5rem;
+}
+
+/* Style pour le compteur API */
+.api-counter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background-color: transparent; /* Pour ne pas avoir d'effet de double fond */
+  border-radius: var(--border-radius-sm);
+  font-size: 0.875rem;
+}
+
+.api-counter-text {
+  color: var(--gray-500);
+}
+
+.api-counter-value {
+  font-family: monospace;
+  color: var(--primary);
+  font-weight: 500;
+  min-width: 3ch;
+  text-align: right;
+}
+
+@media (prefers-color-scheme: dark) {
+  .api-counter {
+    background-color: var(--gray-800);
+  }
+
+  .api-counter-text {
+    color: var(--gray-400);
+  }
 }
 
 .students-grid {
@@ -526,6 +576,10 @@ body {
   .progress-header .progress-label {
     color: var(--gray-200);
   }
+
+  .timer-container {
+    background-color: var(--gray-800);
+  }
 }
 
 /* Indicateur de chargement pour les cartes */
@@ -703,7 +757,7 @@ body {
   height: 2.5rem;
   border-radius: 50%;
   background-color: var(--gray-100);
-  color: var(--primary);
+  color: var (--primary);
   transition: all 0.2s;
 }
 

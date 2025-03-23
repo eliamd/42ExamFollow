@@ -10,7 +10,7 @@ import { useAuth } from '../components/AuthProvider';
 import Link from 'next/link';
 
 // Constante configurable pour le temps d'actualisation en secondes
-const UPDATE_INTERVAL_SECONDS = 1;
+const UPDATE_INTERVAL_SECONDS = 4;
 // Constantes pour la gestion des retries
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000; // 2 secondes
@@ -19,6 +19,35 @@ const MAX_UPDATE_INTERVAL = 100; // 5 minutes maximum
 
 // Ajouter le cache des utilisateurs en haut du fichier, après les imports
 const userDataCache: Record<string, { id: number; login: string; image: any }> = {};
+
+// Variable globale pour compter les requêtes API
+let totalApiCalls = 0;
+
+// Tableau d'ordre des examens du plus ancien au plus récent
+const EXAM_ORDER = [
+  "C Piscine Exam 00",
+  "C Piscine Exam 01",
+  "C Piscine Exam 02",
+  "C Piscine Final Exam",
+  "Exam Rank 02",
+  "Exam Rank 03",
+  "Exam Rank 04",
+  "Exam Rank 05",
+  "Exam Rank 06"
+];
+
+// Fonction pour déterminer si un projet est un examen
+function isExam(projectName: string): boolean {
+  return projectName.includes("Exam Rank") ||
+         projectName.includes("C Piscine Exam") ||
+         projectName === "C Piscine Final Exam";
+}
+
+// Fonction pour obtenir la valeur d'ordre d'un examen (plus grand = plus récent)
+function getExamOrder(examName: string): number {
+  const index = EXAM_ORDER.findIndex(name => examName.includes(name));
+  return index === -1 ? -1 : index;
+}
 
 interface Student {
   id: number;
@@ -105,6 +134,12 @@ function getProgressClass(status: string): string {
 // Fonction qui fait une requête API avec retry en cas d'erreur 429
 async function fetchWithRetry(url: string, options: any, retries = MAX_RETRIES, delay = INITIAL_RETRY_DELAY) {
   try {
+    // Incrémenter le compteur de requêtes API à chaque appel
+    totalApiCalls++;
+    if (typeof window !== "undefined") {
+      // Mettre à jour le compteur dans localStorage pour conserver la valeur entre les rechargements
+      window.localStorage.setItem('42_api_calls_count', totalApiCalls.toString());
+    }
     return await axios(url, options);
   } catch (error: any) {
     if (error.response && error.response.status === 429 && retries > 0) {
@@ -161,28 +196,36 @@ async function fetchStudentData(login: string): Promise<Student> {
     console.log(projectsResponse.data);
     console.log('Nombre total de projets:', projectsResponse.data.length);
 
-    // Reste du code inchangé
+    // Filtrer les examens en utilisant la nouvelle fonction isExam
     const examAttempts = projectsResponse.data.filter((project: any) => {
       const projectName = project.project.name;
-      const isExam = projectName.includes('Exam Rank');
-      console.log(`Projet: ${projectName} - Est un examen: ${isExam} - Note: ${project.final_mark} - Validé: ${project["validated?"]}`);
-      return isExam;
+      const isExamProject = isExam(projectName);
+      console.log(`Projet: ${projectName} - Est un examen: ${isExamProject} - Note: ${project.final_mark} - Validé: ${project["validated?"]}`);
+      return isExamProject;
     });
 
     // Trouver la tentative la plus récente en regardant dans toutes les équipes
     let lastExamAttempt = null;
     let mostRecentDate = new Date(0); // Date initiale très ancienne
+    let highestExamOrder = -1; // Pour conserver l'examen le plus avancé
 
     for (const attempt of examAttempts) {
       if (attempt.teams && attempt.teams.length > 0) {
         // Parcourir toutes les équipes de la tentative
         for (const team of attempt.teams) {
           const teamDate = new Date(team.updated_at);
-          if (teamDate > mostRecentDate) {
+          const examOrder = getExamOrder(attempt.project.name);
+
+          // Priorité 1: examen plus avancé dans l'ordre
+          // Priorité 2: si même niveau d'examen, prendre la date la plus récente
+          if (examOrder > highestExamOrder ||
+              (examOrder === highestExamOrder && teamDate > mostRecentDate)) {
             mostRecentDate = teamDate;
+            highestExamOrder = examOrder;
             lastExamAttempt = {
               ...attempt,
-              team: team // Ajouter l'équipe la plus récente
+              team: team,
+              examOrder: examOrder // Ajouter l'ordre de l'examen pour référence
             };
           }
         }
@@ -301,6 +344,7 @@ export default function TrackingPage() {
   const [error, setError] = useState<string | null>(null);
   const [updateCycle, setUpdateCycle] = useState(0);
   const { login } = useAuth();
+  const [apiCallsCount, setApiCallsCount] = useState(0);
 
   // Sons
   const [playProgressSound] = useSound('/sounds/progress.mp3', { volume: 0.5 });
@@ -317,6 +361,25 @@ export default function TrackingPage() {
     }
   }, [searchParams]);
 
+  // Effet pour initialiser le compteur au chargement de la page
+  useEffect(() => {
+    // Récupérer la valeur du compteur depuis localStorage
+    const savedCount = localStorage.getItem('42_api_calls_count');
+    if (savedCount) {
+      totalApiCalls = parseInt(savedCount);
+    }
+    setApiCallsCount(totalApiCalls);
+
+    // Mettre à jour le compteur à intervalles réguliers
+    const updateCountInterval = setInterval(() => {
+      if (totalApiCalls !== apiCallsCount) {
+        setApiCallsCount(totalApiCalls);
+      }
+    }, 1000);
+
+    return () => clearInterval(updateCountInterval);
+  }, [apiCallsCount]);
+
   // Fonction pour actualiser un étudiant spécifique
   const updateStudentData = useCallback(async (login: string) => {
     try {
@@ -329,20 +392,22 @@ export default function TrackingPage() {
         // Vérifier si c'est la première récupération de données pour l'étudiant
         const isFirstLoad = !prevStudent;
 
-        // Si ce n'est pas le premier chargement, vérifier la progression
+        // Si ce n'est pas le premier chargement, vérifier la progression et le status
         if (!isFirstLoad) {
           const prevProgress = prevStudent.progress;
           const newProgress = studentData.progress;
+          const prevStatus = prevStudent.status;
+          const newStatus = studentData.status;
 
-          // Vérifier si la progression a augmenté
-          if (newProgress > prevProgress) {
+          // Vérifier si la progression a augmenté OU si le statut a changé
+          if (newProgress > prevProgress || prevStatus !== newStatus) {
             // Stocker les données précédentes pour référence
             setPreviousProgress(prev => ({
               ...prev,
               [login]: prevProgress
             }));
 
-            // Indiquer que l'étudiant a une progression améliorée
+            // Indiquer que l'étudiant a une progression améliorée ou un changement d'état
             setAnimatedStudents(prev => ({
               ...prev,
               [login]: true
@@ -368,8 +433,14 @@ export default function TrackingPage() {
               setTimeout(() => {
                 setShowConfetti(false);
               }, 5000);
-            } else {
-              // Jouer un son pour l'avancement normal
+            }
+            // Si le statut est passé à "Réussi", jouer le son de complétion
+            else if (newStatus === 'Réussi' && prevStatus !== 'Réussi') {
+              playCompletionSound();
+            }
+            // Pour tout autre changement, jouer le son de progression
+            else {
+              // Jouer un son pour l'avancement normal ou changement d'état
               playProgressSound();
             }
 
@@ -616,27 +687,33 @@ export default function TrackingPage() {
           </Link>
           <h1 className="title">Suivi des Examens 42</h1>
         </div>
-        <div className="timer" onClick={() => setShowIntervalSlider(!showIntervalSlider)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', width: '100%', height: '100%' }}>
-            <span className="timer-text" style={{ lineHeight: '1' }}>Prochaine actualisation dans : </span>
-            <span className="timer-value" style={{ minWidth: '3ch', textAlign: 'center', lineHeight: '1' }}>{nextUpdate}s</span>
-          </div>
-          {showIntervalSlider && (
-            <div className="interval-slider-container">
-              <input
-                type="range"
-                min={MIN_UPDATE_INTERVAL}
-                max={MAX_UPDATE_INTERVAL}
-                value={tempInterval}
-                onChange={handleIntervalChange}
-                onMouseUp={handleIntervalChangeEnd}
-                onTouchEnd={handleIntervalChangeEnd}
-                className="interval-slider"
-                style={{ margin: '0', position: 'relative', top: '2px' }}
-              />
-              <span className="interval-value">{tempInterval}s</span>
+        <div className="timer-container">
+          <div className="timer" onClick={() => setShowIntervalSlider(!showIntervalSlider)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', width: '100%', height: '100%' }}>
+              <span className="timer-text" style={{ lineHeight: '1' }}>Prochaine actualisation dans : </span>
+              <span className="timer-value" style={{ minWidth: '3ch', textAlign: 'center', lineHeight: '1' }}>{nextUpdate}s</span>
             </div>
-          )}
+            {showIntervalSlider && (
+              <div className="interval-slider-container">
+                <input
+                  type="range"
+                  min={MIN_UPDATE_INTERVAL}
+                  max={MAX_UPDATE_INTERVAL}
+                  value={tempInterval}
+                  onChange={handleIntervalChange}
+                  onMouseUp={handleIntervalChangeEnd}
+                  onTouchEnd={handleIntervalChangeEnd}
+                  className="interval-slider"
+                  style={{ margin: '0', position: 'relative', top: '2px' }}
+                />
+                <span className="interval-value">{tempInterval}s</span>
+              </div>
+            )}
+          </div>
+          <div className="api-counter" title="Nombre total de requêtes API">
+            <span className="api-counter-text">API:</span>
+            <span className="api-counter-value">{apiCallsCount}</span>
+          </div>
         </div>
       </div>
 
