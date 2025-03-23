@@ -4,6 +4,7 @@ Ce dossier contient les sons utilisés par l'application:
 
 1. `progress.mp3` - Joué lorsqu'un étudiant progresse dans son examen
 2. `completion.mp3` - Joué lorsqu'un étudiant termine son examen (100%)
+3. `error.mp3` - Joué lorsqu'un étudiant échoue à son examen
 
 Pour que l'application fonctionne correctement, assurez-vous que ces fichiers sont présents dans ce dossier.
 
