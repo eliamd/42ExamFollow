@@ -654,7 +654,7 @@ body {
 .exam-dropdown {
   position: relative;
   width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   z-index: 100;
 }
 
@@ -663,39 +663,88 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 15px;
-  border: 1px solid var(--gray-300);
-  border-radius: var(--border-radius);
+  padding: 0.875rem 1.25rem;
   background-color: var(--background);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius-md);
   color: var(--text);
   font-size: 1rem;
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .exam-button:hover {
   border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+.exam-button-content {
+  display: flex;
+  align-items: center;
+}
+
+.exam-button-text {
+  margin-right: 0.5rem;
+}
+
+.exam-button-icon {
+  display: flex;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.exam-button-icon.open {
+  transform: rotate(180deg);
 }
 
 .exam-options {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 0.5rem);
   left: 0;
   right: 0;
-  z-index: 1000;
   background-color: var(--background);
   border: 1px solid var(--gray-300);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-md);
-  margin-top: 4px;
-  max-height: 300px;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
+  max-height: 320px;
   overflow-y: auto;
+  z-index: 101;
+  opacity: 0;
+  transform: translateY(-10px);
+  visibility: hidden;
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+}
+
+.exam-options.visible {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
 }
 
 .exam-option {
-  padding: 10px 15px;
+  padding: 0.875rem 1.25rem;
   cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+}
+
+.exam-option:first-child {
+  border-top-left-radius: var(--border-radius-md);
+  border-top-right-radius: var(--border-radius-md);
+}
+
+.exam-option:last-child {
+  border-bottom-left-radius: var(--border-radius-md);
+  border-bottom-right-radius: var(--border-radius-md);
+}
+
+.exam-option:not(:last-child) {
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .exam-option:hover {
@@ -705,6 +754,18 @@ body {
 .exam-option.selected {
   background-color: rgba(14, 165, 233, 0.1);
   color: var(--primary);
+  font-weight: 500;
+}
+
+.exam-option-icon {
+  margin-right: 0.75rem;
+  color: var(--primary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.exam-option.selected .exam-option-icon {
+  opacity: 1;
 }
 
 /* Conteneur d'utilisateurs */
@@ -1270,51 +1331,101 @@ body {
   font-size: 1rem;
   font-weight: 600;
   color: var(--gray-700);
-  margin-bottom: 0.75rem;
-  margin-top: 1.5rem;
+  margin-bottom: 1.25rem;
+  margin-top: 2rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .user-count-badge {
-  background-color: var(--primary-light);
-  color: var(--primary-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+  color: white;
   font-size: 0.75rem;
-  padding: 0.125rem 0.5rem;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
   border-radius: var(--border-radius-full);
-  font-weight: normal;
+  box-shadow: 0 2px 5px rgba(14, 165, 233, 0.25);
 }
 
 /* Grille des boutons utilisateurs avec style corrigé */
 .users-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.75rem;
   width: 100%;
   margin-top: 0.5rem;
 }
 
 .users-grid .user-btn {
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem;
   background-color: var(--background);
-  border: 1px solid var (--gray-300);
+  border: 1px solid var(--gray-300);
   border-radius: var(--border-radius);
   color: var(--text);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s ease;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   width: 100%;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn 0.3s ease forwards;
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.users-grid .user-btn:nth-child(1) { animation-delay: 0.05s; }
+.users-grid .user-btn:nth-child(2) { animation-delay: 0.1s; }
+.users-grid .user-btn:nth-child(3) { animation-delay: 0.15s; }
+.users-grid .user-btn:nth-child(4) { animation-delay: 0.2s; }
+.users-grid .user-btn:nth-child(5) { animation-delay: 0.25s; }
+.users-grid .user-btn:nth-child(6) { animation-delay: 0.3s; }
+.users-grid .user-btn:nth-child(7) { animation-delay: 0.35s; }
+.users-grid .user-btn:nth-child(8) { animation-delay: 0.4s; }
+/* Pour les éléments restants on limite à 0.45s */
+.users-grid .user-btn:nth-child(n+9) { animation-delay: 0.45s; }
+
+.users-grid .user-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-light), var(--primary));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
 }
 
 .users-grid .user-btn:hover {
-  background-color: var(--primary);
   border-color: var(--primary);
-  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.users-grid .user-btn:hover::before {
+  transform: scaleX(1);
+}
+
+.users-grid .user-btn:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Version sombre pour les étudiants */
@@ -1324,8 +1435,8 @@ body {
   }
 
   .user-count-badge {
-    background-color: rgba(14, 165, 233, 0.2);
-    color: var(--primary-light);
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.6) 0%, var(--primary) 100%);
+    box-shadow: 0 2px 5px rgba(14, 165, 233, 0.15);
   }
 
   .users-grid .user-btn {
