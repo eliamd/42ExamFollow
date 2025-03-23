@@ -626,14 +626,65 @@ body {
 /* Indicateur de chargement pour les cartes */
 .loading-indicator {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 1.5rem;
-  height: 1.5rem;
-  border: 2px solid rgba(14, 165, 233, 0.1);
-  border-left-color: var(--primary);
+  top: 10px;
+  right: 10px;
+  width: 2.5rem;
+  height: 2.5rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  background-color: var(--background);
+  box-shadow: 0 0 15px rgba(14, 165, 233, 0.3);
+}
+
+.loader-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.loader-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: var(--primary);
+  border-radius: 50%;
+  animation: loader-bounce 1.4s infinite ease-in-out both;
+}
+
+.loader-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loader-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes loader-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.3;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 10px var(--primary-light);
+  }
+}
+
+/* Version dark mode */
+@media (prefers-color-scheme: dark) {
+  .loading-indicator {
+    background-color: var(--gray-800);
+    box-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+  }
+}
+
+/* Animation spin toujours utilisée ailleurs dans l'application */
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Animations pour les avancements d'étudiants */
@@ -1421,7 +1472,7 @@ body {
 .clock-time {
   font-weight: 500;
   font-family: monospace;
-  color: var(--gray-700);
+  color: var (--gray-700);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1454,6 +1505,72 @@ body {
   border: 2px solid var(--primary);
 }
 
+/* Indicateur de chargement pour les cartes - nouvelle animation moderne */
+.loading-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 2.5rem;
+  height: 2.5rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: var(--background);
+  box-shadow: 0 0 15px rgba(14, 165, 233, 0.3);
+}
+
+.loader-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.loader-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: var(--primary);
+  border-radius: 50%;
+  animation: loader-bounce 1.4s infinite ease-in-out both;
+}
+
+.loader-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loader-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes loader-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.3;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 10px var(--primary-light);
+  }
+}
+
+/* Version dark mode */
+@media (prefers-color-scheme: dark) {
+  .loading-indicator {
+    background-color: var(--gray-800);
+    box-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+  }
+}
+
+/* Animation spin toujours utilisée ailleurs dans l'application */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+
+  
 .exam-selector {
   background-color: var(--background);
   border-radius: var(--border-radius-lg);
