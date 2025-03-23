@@ -1569,4 +1569,268 @@ body {
   to {
     transform: rotate(360deg);
   }
+
+  
+.exam-selector {
+  background-color: var(--background);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.exam-selector select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius);
+  background-color: var(--background);
+  color: var(--text);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+.exam-selector select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+  outline: none;
+}
+
+.search-section {
+  margin-bottom: 2rem;
+}
+
+/* Styles pour les cartes d'équipes */
+.team-card {
+  background-color: var(--background);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.team-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.team-header {
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+}
+
+.team-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.team-members {
+  padding: 1rem;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.member-item:hover {
+  background-color: var(--gray-50);
+}
+
+.member-avatar {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-info {
+  margin-left: 1rem;
+  flex: 1;
+}
+
+.member-login {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.member-role {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+}
+
+.leader-badge {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  background-color: var(--primary);
+  color: white;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  border: 2px solid var(--background);
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .exam-selector {
+    background-color: var(--gray-800);
+  }
+
+  .exam-selector select {
+    background-color: var(--gray-800);
+    border-color: var(--gray-700);
+    color: var(--text-dark);
+  }
+
+  .team-card {
+    background-color: var(--gray-800);
+    border-color: var(--gray-700);
+  }
+
+  .team-header {
+    background-color: var(--gray-900);
+    border-color: var(--gray-700);
+  }
+
+  .member-item:hover {
+    background-color: var(--gray-700);
+  }
+
+  .member-role {
+    color: var(--gray-400);
+  }
+
+  .leader-badge {
+    border-color: var(--gray-800);
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.team-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .exam-selector {
+    padding: 1rem;
+  }
+
+  .member-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+/* Styles pour la grille de boutons utilisateurs */
+.user-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* Styles pour les boutons utilisateurs */
+.user-button {
+  padding: 0.5rem 1rem;
+  background-color: var(--background);
+  border: 1px solid var(--gray-200);
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-size: 0.875rem;
+  text-align: center;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-button:hover {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .user-button {
+    background-color: var(--gray-800);
+    border-color: var(--gray-700);
+    color: var(--text-dark);
+  }
+
+  .user-button:hover {
+    background-color: var(--primary);
+    border-color: var(--primary);
+  }
+}
+
+.remove-student-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: rgba(255, 0, 0, 0.1);
+  color: #ff4444;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+  z-index: 10;
+}
+
+.student-card:hover .remove-student-btn {
+  opacity: 1;
+}
+
+.remove-student-btn:hover {
+  background-color: rgba(255, 0, 0, 0.2);
+  transform: scale(1.1);
 }

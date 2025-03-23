@@ -531,6 +531,36 @@ export default function TrackingPage() {
     });
   };
 
+  // Fonction pour supprimer un étudiant
+  const removeStudent = useCallback((loginToRemove: string) => {
+    setStudents(prevStudents => prevStudents.filter(student => student !== loginToRemove));
+    setStudentsData(prevData => {
+      const newData = { ...prevData };
+      delete newData[loginToRemove];
+      return newData;
+    });
+    setPreviousProgress(prev => {
+      const newProgress = { ...prev };
+      delete newProgress[loginToRemove];
+      return newProgress;
+    });
+    setAnimatedStudents(prev => {
+      const newAnimated = { ...prev };
+      delete newAnimated[loginToRemove];
+      return newAnimated;
+    });
+    setCompletedStudents(prev => {
+      const newCompleted = { ...prev };
+      delete newCompleted[loginToRemove];
+      return newCompleted;
+    });
+    setFailedStudents(prev => {
+      const newFailed = { ...prev };
+      delete newFailed[loginToRemove];
+      return newFailed;
+    });
+  }, []);
+
   if (!mounted) {
     return null;
   }
@@ -654,6 +684,13 @@ export default function TrackingPage() {
                   </div>
                 )}
 
+                <button 
+                  className="remove-student-btn"
+                  onClick={() => removeStudent(login)}
+                  title="Supprimer cet étudiant"
+                >
+                  ×
+                </button>
                 <div className="student-header">
                   <div className="student-avatar">
                     <img
