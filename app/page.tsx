@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { MagnifyingGlassIcon, ClockIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useAuth } from './components/AuthProvider';
+import UserSearch from './components/UserSearch';
 
 // Interface pour stocker les groupes dans l'historique
 interface HistoryGroup {
@@ -13,7 +14,6 @@ interface HistoryGroup {
 
 export default function Home() {
   const { isAuthenticated, login } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
   const [students, setStudents] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryGroup[]>([]);
 
@@ -78,11 +78,9 @@ export default function Home() {
     setHistory(updatedHistory);
   };
 
-  const handleAddStudent = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery && !students.includes(searchQuery)) {
-      setStudents([...students, searchQuery]);
-      setSearchQuery('');
+  const handleAddStudent = (login: string) => {
+    if (!students.includes(login)) {
+      setStudents([...students, login]);
     }
   };
 
@@ -139,23 +137,7 @@ export default function Home() {
           Suivez la progression des étudiants en temps réel
         </p>
 
-        <form onSubmit={handleAddStudent}>
-          <div className="input-group">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Login de l'étudiant..."
-              className="input"
-            />
-            <button
-              type="submit"
-              className="btn-search"
-            >
-              <MagnifyingGlassIcon className="search-icon" />
-            </button>
-          </div>
-        </form>
+        <UserSearch onSelectUser={handleAddStudent} />
 
         {students.length > 0 && (
           <div>
