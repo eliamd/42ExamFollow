@@ -5,9 +5,10 @@ import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import Confetti from '../components/Confetti';
 import { useSound } from 'use-sound';
-import { HomeIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../components/AuthProvider';
 import Link from 'next/link';
+import { initApiCounter, getApiCallCount } from '../utils/apiUtils';
 
 // Constante configurable pour le temps d'actualisation en secondes
 const UPDATE_INTERVAL_SECONDS = 4;
@@ -345,10 +346,13 @@ export default function TrackingPage() {
   const [updateCycle, setUpdateCycle] = useState(0);
   const { login } = useAuth();
   const [apiCallsCount, setApiCallsCount] = useState(0);
-
+  const [failedStudents, setFailedStudents] = useState<Record<string, boolean>>({});
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [animationDuration, setAnimationDuration] = useState(10000); // 10 secondes en millisecondes
   // Sons
   const [playProgressSound] = useSound('/sounds/progress.mp3', { volume: 0.5 });
   const [playCompletionSound] = useSound('/sounds/completion.mp3', { volume: 0.7 });
+  const [playErrorSound] = useSound('/sounds/error.mp3', { volume: 0.6 });
 
   useEffect(() => {
     setMounted(true);
@@ -363,17 +367,26 @@ export default function TrackingPage() {
 
   // Effet pour initialiser le compteur au chargement de la page
   useEffect(() => {
-    // Récupérer la valeur du compteur depuis localStorage
-    const savedCount = localStorage.getItem('42_api_calls_count');
-    if (savedCount) {
-      totalApiCalls = parseInt(savedCount);
-    }
-    setApiCallsCount(totalApiCalls);
+    // Initialiser le compteur avec la nouvelle fonction
+    setApiCallsCount(initApiCounter());
 
     // Mettre à jour le compteur à intervalles réguliers
     const updateCountInterval = setInterval(() => {
-      if (totalApiCalls !== apiCallsCount) {
-        setApiCallsCount(totalApiCalls);
+      const currentCount = getApiCallCount();
+      if (currentCount !== apiCallsCount) {
+        setApiCallsCount(currentCount);
+      }
+
+      // Vérifier aussi si l'heure a changé à chaque intervalle
+      const now = new Date();
+      const currentHour = now.getHours();
+      const lastHourStr = localStorage.getItem('42_api_last_hour');
+      const lastHour = lastHourStr ? parseInt(lastHourStr) : currentHour;
+
+      if (currentHour !== lastHour) {
+        // L'heure a changé, on met à jour l'interface
+        setApiCallsCount(0);
+        localStorage.setItem('42_api_last_hour', currentHour.toString());
       }
     }, 1000);
 
@@ -438,19 +451,38 @@ export default function TrackingPage() {
             else if (newStatus === 'Réussi' && prevStatus !== 'Réussi') {
               playCompletionSound();
             }
+            // Si le statut est passé de "En cours" à "Échoué", jouer le son d'erreur
+            else if (newStatus === 'Échoué' && prevStatus === 'En cours') {
+              // Activer l'animation d'échec
+              setFailedStudents(prev => ({
+                ...prev,
+                [login]: true
+              }));
+
+              // Jouer le son d'erreur
+              playErrorSound();
+
+              // Désactiver l'animation après la durée configurée
+              setTimeout(() => {
+                setFailedStudents(prev => ({
+                  ...prev,
+                  [login]: false
+                }));
+              }, animationDuration); // Maintenir la durée d'affichage contrôlée par animationDuration
+            }
             // Pour tout autre changement, jouer le son de progression
             else {
               // Jouer un son pour l'avancement normal ou changement d'état
               playProgressSound();
             }
 
-            // Réinitialiser l'animation après 10 secondes
+            // Réinitialiser l'animation après la durée configurée
             setTimeout(() => {
               setAnimatedStudents(prev => ({
                 ...prev,
                 [login]: false
               }));
-            }, 10000);
+            }, animationDuration);
           }
         }
 
@@ -478,7 +510,7 @@ export default function TrackingPage() {
     } finally {
       setCurrentUpdatingLogin(null);
     }
-  }, [playProgressSound, playCompletionSound, completedStudents]);
+  }, [playProgressSound, playCompletionSound, playErrorSound, completedStudents, animationDuration]);
 
   // Fonction pour démarrer le timer avec une précision correcte
   const startTimer = useCallback((seconds: number, onComplete: () => void) => {
@@ -620,14 +652,14 @@ export default function TrackingPage() {
       [login]: true
     }));
 
-    // Réinitialiser l'animation après 10 secondes
+    // Réinitialiser l'animation après la durée configurée
     setTimeout(() => {
       setAnimatedStudents(prev => ({
         ...prev,
         [login]: false
       }));
-    }, 10000);
-  }, [playCompletionSound]);
+    }, animationDuration);
+  }, [playCompletionSound, animationDuration]);
 
   // Test caché pour déclencher l'animation de progression sans affecter les données
   const triggerProgressAnimation = useCallback((login: string) => {
@@ -640,18 +672,55 @@ export default function TrackingPage() {
       [login]: true
     }));
 
-    // Réinitialiser l'animation après 10 secondes
+    // Réinitialiser l'animation après la durée configurée
     setTimeout(() => {
       setAnimatedStudents(prev => ({
         ...prev,
         [login]: false
       }));
-    }, 10000);
-  }, [playProgressSound]);
+    }, animationDuration);
+  }, [playProgressSound, animationDuration]);
+
+  // Test caché pour déclencher l'animation d'échec sans affecter les données
+  const triggerFailureAnimation = useCallback((login: string) => {
+    // Activer l'animation d'échec
+    setFailedStudents(prev => ({
+      ...prev,
+      [login]: true
+    }));
+
+    // Jouer le son d'erreur
+    playErrorSound();
+
+    // Désactiver l'animation après la durée configurée
+    setTimeout(() => {
+      setFailedStudents(prev => ({
+        ...prev,
+        [login]: false
+      }));
+    }, animationDuration); // Modifié de 5000 à 8000 ms
+  }, [playErrorSound, animationDuration]);
 
   // En cas d'erreur d'authentification, proposer de se reconnecter
   const handleReconnect = () => {
     login(); // Utiliser la fonction login du AuthProvider
+  };
+
+  // Effet pour mettre à jour l'heure chaque minute
+  useEffect(() => {
+    const clockInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(clockInterval);
+  }, []);
+
+  // Fonction pour formater l'heure
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (!mounted) {
@@ -676,124 +745,150 @@ export default function TrackingPage() {
   }
 
   return (
-    <div className="container">
+    <div className="main-container">
       {/* Composant de confettis qui sera activé lors d'un accomplissement */}
       <Confetti active={showConfetti} />
 
-      <div className="header">
-        <div className="header-left">
-          <Link href="/" className="home-button" title="Retour à l'accueil">
-            <HomeIcon className="home-icon" />
-          </Link>
-          <h1 className="title">Suivi des Examens 42</h1>
-        </div>
-        <div className="timer-container">
-          <div className="timer" onClick={() => setShowIntervalSlider(!showIntervalSlider)}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', width: '100%', height: '100%' }}>
-              <span className="timer-text" style={{ lineHeight: '1' }}>Prochaine actualisation dans : </span>
-              <span className="timer-value" style={{ minWidth: '3ch', textAlign: 'center', lineHeight: '1' }}>{nextUpdate}s</span>
+      <header className="modern-header">
+        <div className="header-content">
+          <div className="header-brand">
+            <Link href="/" className="brand-link">
+              <div className="brand-logo">42</div>
+              <h1 className="brand-title">Eval Viewer</h1>
+            </Link>
+          </div>
+
+          <div className="header-controls">
+            <div className="clock-display">
+              <ClockIcon className="clock-icon" />
+              <span className="clock-time">{formatTime(currentTime)}</span>
             </div>
-            {showIntervalSlider && (
-              <div className="interval-slider-container">
-                <input
-                  type="range"
-                  min={MIN_UPDATE_INTERVAL}
-                  max={MAX_UPDATE_INTERVAL}
-                  value={tempInterval}
-                  onChange={handleIntervalChange}
-                  onMouseUp={handleIntervalChangeEnd}
-                  onTouchEnd={handleIntervalChangeEnd}
-                  className="interval-slider"
-                  style={{ margin: '0', position: 'relative', top: '2px' }}
-                />
-                <span className="interval-value">{tempInterval}s</span>
+
+            <div className="refresh-control">
+              <div
+                className="countdown-badge"
+                onClick={() => setShowIntervalSlider(!showIntervalSlider)}
+                title="Cliquez pour configurer l'intervalle"
+              >
+                <span className="countdown-value">{nextUpdate}</span>
+                <span className="countdown-label">s</span>
               </div>
-            )}
-          </div>
-          <div className="api-counter" title="Nombre total de requêtes API">
-            <span className="api-counter-text">API:</span>
-            <span className="api-counter-value">{apiCallsCount}</span>
+
+              {showIntervalSlider && (
+                <div className="interval-popover">
+                  <div className="interval-header">Fréquence d'actualisation</div>
+                  <input
+                    type="range"
+                    min={MIN_UPDATE_INTERVAL}
+                    max={MAX_UPDATE_INTERVAL}
+                    value={tempInterval}
+                    onChange={handleIntervalChange}
+                    onMouseUp={handleIntervalChangeEnd}
+                    onTouchEnd={handleIntervalChangeEnd}
+                    className="interval-slider"
+                  />
+                  <div className="interval-footer">
+                    <span className="interval-value">{tempInterval} secondes</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="api-badge" title="Nombre total de requêtes API">
+              <span className="api-value">{apiCallsCount}</span>
+              <span className="api-label">API</span>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="students-grid">
-        {students.map(login => {
-          const studentData = studentsData[login];
-          const isAnimated = animatedStudents[login];
+      <div className="content-area">
+        <div className="students-grid">
+          {students.map(login => {
+            const studentData = studentsData[login];
+            const isAnimated = animatedStudents[login];
+            const isFailed = failedStudents[login];
 
-          // Si nous n'avons pas encore les données de cet étudiant, afficher un squelette
-          if (!studentData) {
-            return <StudentCardSkeleton key={`skeleton-${login}`} login={login} />;
-          }
+            // Si nous n'avons pas encore les données de cet étudiant, afficher un squelette
+            if (!studentData) {
+              return <StudentCardSkeleton key={`skeleton-${login}`} login={login} />;
+            }
 
-          // Sinon, afficher la carte avec les données de l'étudiant
-          return (
-            <div
-              key={studentData.id}
-              className={`student-card ${isAnimated ? 'card-bounce rainbow-shadow' : ''}`}
-            >
-              {currentUpdatingLogin === login && (
-                <div className="loading-indicator" title="Actualisation des données en cours..."></div>
-              )}
-              <div className="student-header">
-                <div className="student-avatar">
-                  <img
-                    src={studentData.image?.versions?.small || studentData.image?.link}
-                    alt={studentData.login}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = 'https://cdn.intra.42.fr/users/default.png';
-                    }}
-                  />
-                  <div className={`status-indicator ${getStatusClass(studentData.status)}`}></div>
-                </div>
-                <div className="student-info">
-                  <h2
-                    className="student-name"
-                    onClick={() => triggerCompletionAnimation(studentData.login)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {studentData.login}
-                  </h2>
-                  <p
-                    className="student-status"
-                    onClick={() => triggerProgressAnimation(studentData.login)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {studentData.status}
-                    {studentData.groupNumber !== undefined && (
-                      <span className="group-number">
-                        (Groupe {studentData.groupNumber})
-                      </span>
+            // Sinon, afficher la carte avec les données de l'étudiant
+            return (
+              <div
+                key={studentData.id}
+                className={`student-card ${isAnimated ? 'card-bounce rainbow-shadow' : ''} ${isFailed ? 'failure-shadow' : ''}`}
+              >
+                {currentUpdatingLogin === login && (
+                  <div className="loading-indicator" title="Actualisation des données en cours..."></div>
+                )}
+                <div className="student-header">
+                  <div className="student-avatar">
+                    <img
+                      src={studentData.image?.versions?.small || studentData.image?.link}
+                      alt={studentData.login}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://cdn.intra.42.fr/users/default.png';
+                      }}
+                    />
+                    <div className={`status-indicator ${getStatusClass(studentData.status)}`}></div>
+                  </div>
+                  <div className="student-info">
+                    <h2
+                      className="student-name"
+                      onClick={() => triggerCompletionAnimation(studentData.login)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {studentData.login}
+                    </h2>
+                    <p
+                      className="student-status"
+                      onClick={() => triggerProgressAnimation(studentData.login)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {studentData.status}
+                      {studentData.groupNumber !== undefined && (
+                        <span className="group-number">
+                          (Groupe {studentData.groupNumber})
+                        </span>
+                      )}
+                    </p>
+                    {studentData.currentExam && (
+                      <p className="exam-name">{studentData.currentExam}</p>
                     )}
-                  </p>
-                  {studentData.currentExam && (
-                    <p className="exam-name">{studentData.currentExam}</p>
+                  </div>
+                </div>
+
+                <div className="progress-section">
+                  <div className="progress-header">
+                    <span
+                      className="progress-label"
+                      onClick={() => triggerFailureAnimation(studentData.login)}
+                      style={{ cursor: 'pointer' }}
+                      title="Cliquez pour tester l'animation d'échec"
+                    >
+                      Progression
+                    </span>
+                    <span className="progress-value">{studentData.progress}%</span>
+                  </div>
+                  <div className="progress-bar">
+                    <div
+                      className={`progress-fill ${getProgressClass(studentData.status)}`}
+                      style={{ width: `${studentData.progress}%` }}
+                    ></div>
+                  </div>
+                  {studentData.lastAttemptDate && (
+                    <div className="attempt-date">
+                      Dernier essai : {formatDate(studentData.lastAttemptDate)}
+                    </div>
                   )}
                 </div>
               </div>
-
-              <div className="progress-section">
-                <div className="progress-header">
-                  <span className="progress-label">Progression</span>
-                  <span className="progress-value">{studentData.progress}%</span>
-                </div>
-                <div className="progress-bar">
-                  <div
-                    className={`progress-fill ${getProgressClass(studentData.status)}`}
-                    style={{ width: `${studentData.progress}%` }}
-                  ></div>
-                </div>
-                {studentData.lastAttemptDate && (
-                  <div className="attempt-date">
-                    Dernier essai : {formatDate(studentData.lastAttemptDate)}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
