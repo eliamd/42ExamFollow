@@ -10,7 +10,7 @@ import { useAuth } from '../components/AuthProvider';
 import Link from 'next/link';
 
 // Constante configurable pour le temps d'actualisation en secondes
-const UPDATE_INTERVAL_SECONDS = 1;
+const UPDATE_INTERVAL_SECONDS = 4;
 // Constantes pour la gestion des retries
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000; // 2 secondes
@@ -19,6 +19,9 @@ const MAX_UPDATE_INTERVAL = 100; // 5 minutes maximum
 
 // Ajouter le cache des utilisateurs en haut du fichier, après les imports
 const userDataCache: Record<string, { id: number; login: string; image: any }> = {};
+
+// Variable globale pour compter les requêtes API
+let totalApiCalls = 0;
 
 interface Student {
   id: number;
@@ -105,6 +108,12 @@ function getProgressClass(status: string): string {
 // Fonction qui fait une requête API avec retry en cas d'erreur 429
 async function fetchWithRetry(url: string, options: any, retries = MAX_RETRIES, delay = INITIAL_RETRY_DELAY) {
   try {
+    // Incrémenter le compteur de requêtes API à chaque appel
+    totalApiCalls++;
+    if (typeof window !== "undefined") {
+      // Mettre à jour le compteur dans localStorage pour conserver la valeur entre les rechargements
+      window.localStorage.setItem('42_api_calls_count', totalApiCalls.toString());
+    }
     return await axios(url, options);
   } catch (error: any) {
     if (error.response && error.response.status === 429 && retries > 0) {
@@ -301,6 +310,7 @@ export default function TrackingPage() {
   const [error, setError] = useState<string | null>(null);
   const [updateCycle, setUpdateCycle] = useState(0);
   const { login } = useAuth();
+  const [apiCallsCount, setApiCallsCount] = useState(0);
 
   // Sons
   const [playProgressSound] = useSound('/sounds/progress.mp3', { volume: 0.5 });
@@ -317,6 +327,25 @@ export default function TrackingPage() {
     }
   }, [searchParams]);
 
+  // Effet pour initialiser le compteur au chargement de la page
+  useEffect(() => {
+    // Récupérer la valeur du compteur depuis localStorage
+    const savedCount = localStorage.getItem('42_api_calls_count');
+    if (savedCount) {
+      totalApiCalls = parseInt(savedCount);
+    }
+    setApiCallsCount(totalApiCalls);
+
+    // Mettre à jour le compteur à intervalles réguliers
+    const updateCountInterval = setInterval(() => {
+      if (totalApiCalls !== apiCallsCount) {
+        setApiCallsCount(totalApiCalls);
+      }
+    }, 1000);
+
+    return () => clearInterval(updateCountInterval);
+  }, [apiCallsCount]);
+
   // Fonction pour actualiser un étudiant spécifique
   const updateStudentData = useCallback(async (login: string) => {
     try {
@@ -329,20 +358,22 @@ export default function TrackingPage() {
         // Vérifier si c'est la première récupération de données pour l'étudiant
         const isFirstLoad = !prevStudent;
 
-        // Si ce n'est pas le premier chargement, vérifier la progression
+        // Si ce n'est pas le premier chargement, vérifier la progression et le status
         if (!isFirstLoad) {
           const prevProgress = prevStudent.progress;
           const newProgress = studentData.progress;
+          const prevStatus = prevStudent.status;
+          const newStatus = studentData.status;
 
-          // Vérifier si la progression a augmenté
-          if (newProgress > prevProgress) {
+          // Vérifier si la progression a augmenté OU si le statut a changé
+          if (newProgress > prevProgress || prevStatus !== newStatus) {
             // Stocker les données précédentes pour référence
             setPreviousProgress(prev => ({
               ...prev,
               [login]: prevProgress
             }));
 
-            // Indiquer que l'étudiant a une progression améliorée
+            // Indiquer que l'étudiant a une progression améliorée ou un changement d'état
             setAnimatedStudents(prev => ({
               ...prev,
               [login]: true
@@ -368,8 +399,14 @@ export default function TrackingPage() {
               setTimeout(() => {
                 setShowConfetti(false);
               }, 5000);
-            } else {
-              // Jouer un son pour l'avancement normal
+            }
+            // Si le statut est passé à "Réussi", jouer le son de complétion
+            else if (newStatus === 'Réussi' && prevStatus !== 'Réussi') {
+              playCompletionSound();
+            }
+            // Pour tout autre changement, jouer le son de progression
+            else {
+              // Jouer un son pour l'avancement normal ou changement d'état
               playProgressSound();
             }
 
@@ -616,27 +653,33 @@ export default function TrackingPage() {
           </Link>
           <h1 className="title">Suivi des Examens 42</h1>
         </div>
-        <div className="timer" onClick={() => setShowIntervalSlider(!showIntervalSlider)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', width: '100%', height: '100%' }}>
-            <span className="timer-text" style={{ lineHeight: '1' }}>Prochaine actualisation dans : </span>
-            <span className="timer-value" style={{ minWidth: '3ch', textAlign: 'center', lineHeight: '1' }}>{nextUpdate}s</span>
-          </div>
-          {showIntervalSlider && (
-            <div className="interval-slider-container">
-              <input
-                type="range"
-                min={MIN_UPDATE_INTERVAL}
-                max={MAX_UPDATE_INTERVAL}
-                value={tempInterval}
-                onChange={handleIntervalChange}
-                onMouseUp={handleIntervalChangeEnd}
-                onTouchEnd={handleIntervalChangeEnd}
-                className="interval-slider"
-                style={{ margin: '0', position: 'relative', top: '2px' }}
-              />
-              <span className="interval-value">{tempInterval}s</span>
+        <div className="timer-container">
+          <div className="timer" onClick={() => setShowIntervalSlider(!showIntervalSlider)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', width: '100%', height: '100%' }}>
+              <span className="timer-text" style={{ lineHeight: '1' }}>Prochaine actualisation dans : </span>
+              <span className="timer-value" style={{ minWidth: '3ch', textAlign: 'center', lineHeight: '1' }}>{nextUpdate}s</span>
             </div>
-          )}
+            {showIntervalSlider && (
+              <div className="interval-slider-container">
+                <input
+                  type="range"
+                  min={MIN_UPDATE_INTERVAL}
+                  max={MAX_UPDATE_INTERVAL}
+                  value={tempInterval}
+                  onChange={handleIntervalChange}
+                  onMouseUp={handleIntervalChangeEnd}
+                  onTouchEnd={handleIntervalChangeEnd}
+                  className="interval-slider"
+                  style={{ margin: '0', position: 'relative', top: '2px' }}
+                />
+                <span className="interval-value">{tempInterval}s</span>
+              </div>
+            )}
+          </div>
+          <div className="api-counter" title="Nombre total de requêtes API">
+            <span className="api-counter-text">API:</span>
+            <span className="api-counter-value">{apiCallsCount}</span>
+          </div>
         </div>
       </div>
 
