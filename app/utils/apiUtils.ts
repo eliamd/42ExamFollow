@@ -33,6 +33,12 @@ export function getExamOrder(examName: string): number {
 // Cache des utilisateurs pour éviter des requêtes répétées
 const userDataCache: Record<string, { id: number; login: string; image: any }> = {};
 
+// La structure du cache pour les projets est conservée mais ne sera plus utilisée
+const projectsCache: Record<string, { data: any, timestamp: number }> = {};
+
+// Réduire drastiquement la durée du cache des projets pour permettre des actualisations plus fréquentes
+const CACHE_DURATION = 30 * 1000; // 30 secondes au lieu de 5 minutes
+
 // Variable globale pour compter les requêtes API
 let totalApiCalls = 0;
 
@@ -135,12 +141,12 @@ export async function fetchWithRetry(url: string, options: any, retries = MAX_RE
 export async function fetchStudentData(login: string): Promise<any> {
   const token = localStorage.getItem('42_access_token');
   if (!token) {
-    // Si pas de token, rediriger vers la page de login
+    console.error('❌ Erreur: Token d\'authentification non trouvé');
     window.location.href = '/';
     throw new Error('Non authentifié');
   }
 
-  console.log(`\n=== Début de la récupération des données pour ${login} ===`);
+  console.log(`🔄 Début de la récupération des données pour ${login}`);
 
   const authHeaders = {
     headers: {
@@ -149,10 +155,10 @@ export async function fetchStudentData(login: string): Promise<any> {
   };
 
   try {
-    // Vérifier si les données de l'utilisateur sont déjà en cache
+    // Garder le cache pour les données utilisateur
     let userData = userDataCache[login];
     if (!userData) {
-      // Si pas en cache, récupérer les informations de l'utilisateur
+      console.log(`📡 Requête API: Données utilisateur pour ${login}`);
       const userResponse = await fetchWithRetry(
         `https://api.intra.42.fr/v2/users/${login}`,
         authHeaders
@@ -162,22 +168,29 @@ export async function fetchStudentData(login: string): Promise<any> {
         login: userResponse.data.login,
         image: userResponse.data.image
       };
-      // Mettre en cache les données de l'utilisateur
+      console.log(`✅ Données utilisateur pour ${login} récupérées avec succès`);
       userDataCache[login] = userData;
+    } else {
+      console.log(`💾 Utilisation du cache pour les données utilisateur de ${login}`);
     }
 
-    // Récupérer tous les projets de l'utilisateur avec retry
+    // Toujours récupérer les dernières données de projet depuis l'API sans utiliser le cache
+    console.log(`📡 Requête API: Projets pour ${login}`);
     const projectsResponse = await fetchWithRetry(
       `https://api.intra.42.fr/v2/users/${login}/projects_users`,
       authHeaders
     );
+    const projectsData = projectsResponse.data;
+    console.log(`✅ Projets pour ${login} récupérés avec succès (${projectsData.length} projets)`);
 
     // Filtrer les examens en utilisant la fonction isExam
-    const examAttempts = projectsResponse.data.filter((project: any) => {
+    const examAttempts = projectsData.filter((project: any) => {
       const projectName = project.project.name;
       const isExamProject = isExam(projectName);
       return isExamProject;
     });
+
+    console.log(`🧪 ${examAttempts.length} examens trouvés pour ${login}`);
 
     // Trouver la tentative la plus récente en regardant dans toutes les équipes
     let lastExamAttempt = null;
@@ -217,6 +230,10 @@ export async function fetchStudentData(login: string): Promise<any> {
       status = lastExamAttempt.team["validated?"] ? 'Réussi' :
                lastExamAttempt.team.status === 'finished' ? 'Échoué' :
                lastExamAttempt.team.status === 'in_progress' ? 'En cours' : 'non commencé';
+
+      console.log(`📊 Résultat pour ${login}: ${currentExam} - ${progress}% - ${status}`);
+    } else {
+      console.log(`ℹ️ Aucun examen trouvé pour ${login}`);
     }
 
     return {
@@ -230,7 +247,7 @@ export async function fetchStudentData(login: string): Promise<any> {
       currentExam
     };
   } catch (error: any) {
-    console.error(`Erreur lors de la récupération des données pour ${login}:`, error);
+    console.error(`❌ Erreur lors de la récupération des données pour ${login}:`, error);
 
     // Message d'erreur plus informatif en fonction du type d'erreur
     if (error.response) {
@@ -253,6 +270,22 @@ export async function fetchStudentData(login: string): Promise<any> {
 
     throw error;
   }
+}
+
+// Ces fonctions peuvent rester même si elles ne sont plus utilisées directement
+export function clearStudentCache(login: string): void {
+  const cacheKey = `projects_${login}`;
+  if (projectsCache[cacheKey]) {
+    delete projectsCache[cacheKey];
+    console.log(`🧹 Cache effacé pour ${login}`);
+  }
+}
+
+export function clearAllCache(): void {
+  Object.keys(projectsCache).forEach(key => {
+    delete projectsCache[key];
+  });
+  console.log(`🧹 Cache des projets entièrement effacé`);
 }
 
 /**
