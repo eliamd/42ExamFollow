@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import ReactCanvasConfetti from 'react-canvas-confetti';
 import type { CreateTypes } from 'canvas-confetti';
 
@@ -23,21 +23,22 @@ export default function Confetti({ active }: ConfettiProps) {
   const makeShot = (angle: number, originX: number) => {
     if (refAnimationInstance.current) {
       refAnimationInstance.current({
-        particleCount: 40, // Réduit pour éviter de surcharger
+        particleCount: 40,
         angle,
         spread: 70,
-        origin: { x: originX, y: originX > 0.5 ? 0.2 : 0.7 }, // Dynamique pour couvrir tout l'écran
+        origin: { x: originX, y: originX > 0.5 ? 0.2 : 0.7 },
         colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
         startVelocity: randomInRange(25, 40),
-        gravity: 0.8, // Moins de gravité pour que les confettis restent plus longtemps
-        scalar: randomInRange(0.8, 1.2), // Taille variable
-        ticks: 350, // Durée de vie des particules plus longue
-        decay: 0.93, // Ralentit la disparition des particules
+        gravity: 0.8,
+        scalar: randomInRange(0.8, 1.2),
+        ticks: 350,
+        decay: 0.93,
       });
     }
   };
 
-  const fireConfetti = () => {
+  // Utilisation de useCallback pour utiliser cette fonction dans useEffect
+  const fireConfetti = useCallback(() => {
     if (!refAnimationInstance.current || isAnimating) return;
 
     setIsAnimating(true);
@@ -82,13 +83,13 @@ export default function Confetti({ active }: ConfettiProps) {
     setTimeout(() => {
       setIsAnimating(false);
     }, 5500);
-  };
+  }, [isAnimating]);
 
   useEffect(() => {
     if (active && !isAnimating) {
       fireConfetti();
     }
-  }, [active]);
+  }, [active, isAnimating, fireConfetti]);
 
   return (
     <ReactCanvasConfetti

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Confetti from '../components/Confetti';
 import { useSound } from 'use-sound';
-import { HomeIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { ClockIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../components/AuthProvider';
 import Link from 'next/link';
 // Importer toutes les fonctions nécessaires depuis apiUtils
@@ -12,14 +12,9 @@ import {
   fetchStudentData,
   initApiCounter,
   getApiCallCount,
-  fetchWithRetry,
-  isExam,
-  getExamOrder,
   getStatusClass,
   getProgressClass,
-  formatDate,
-  clearStudentCache,  // Ajouter ces nouvelles fonctions
-  clearAllCache
+  formatDate
 } from '../utils/apiUtils';
 
 // Constantes pour la gestion des requêtes API et des intervalles
@@ -122,8 +117,12 @@ function StudentCardSkeleton({ login }: { login: string }) {
   );
 }
 
-export default function TrackingPage() {
+// Composant qui utilise useSearchParams (nécessite Suspense)
+function TrackingContent() {
   const searchParams = useSearchParams();
+  // ... reste du code qui utilise searchParams ...
+
+  // Le reste de votre logique actuelle va ici
   const [students, setStudents] = useState<string[]>([]);
   const [studentsData, setStudentsData] = useState<Record<string, Student>>({});
   const [previousProgress, setPreviousProgress] = useState<Record<string, number>>({});
@@ -447,7 +446,8 @@ export default function TrackingPage() {
   // Effet pour le chargement initial et les actualisations périodiques
   useEffect(() => {
     let isActive = true;
-    let timerCleanup: (() => void) | null = null;
+    // Correction: initialiser timerCleanup correctement comme une fonction ou utiliser un type compatible
+    const timerCleanup = { current: () => {} };
 
     // Fonction asynchrone interne pour effectuer la mise à jour
     const performUpdate = async () => {
@@ -462,9 +462,9 @@ export default function TrackingPage() {
     // Fonction de nettoyage (clean-up)
     return () => {
       isActive = false;
-      if (timerCleanup) {
-        timerCleanup();
-      }
+      // Utiliser la fonction via l'objet current pour éviter l'erreur de typage
+      timerCleanup.current();
+
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
@@ -795,5 +795,53 @@ export default function TrackingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Composant squelette pour le chargement
+function LoadingSkeleton() {
+  return (
+    <div className="main-container">
+      <header className="modern-header">
+        <div className="header-content">
+          <div className="header-brand">
+            <div className="brand-link">
+              <div className="brand-logo">42</div>
+              <h1 className="brand-title">Eval Viewer</h1>
+            </div>
+          </div>
+        </div>
+      </header>
+      <div className="content-area">
+        <div className="students-grid">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={`skeleton-${index}`} className="student-card">
+              <div className="student-header">
+                <div className="student-avatar">
+                  <div className="skeleton skeleton-avatar"></div>
+                </div>
+                <div className="student-info">
+                  <div className="skeleton skeleton-text"></div>
+                  <div className="skeleton skeleton-text short"></div>
+                </div>
+              </div>
+              <div className="progress-section">
+                <div className="skeleton skeleton-text medium"></div>
+                <div className="progress-bar skeleton"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Composant principal exporté avec Suspense
+export default function TrackingPage() {
+  return (
+    <Suspense fallback={<LoadingSkeleton />}>
+      <TrackingContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronDownIcon, CheckIcon, UserGroupIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, CheckIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 
 interface Project {
@@ -184,7 +184,7 @@ export default function ExamSelector({ onSelectUser }: ExamSelectorProps) {
       {!loading && selectedExamId && uniqueUsers.length > 0 && (
         <div>
           <h3 className="user-section-title">
-            Étudiants en cours d'examen <span className="user-count-badge">{uniqueUsers.length}</span>
+            Étudiants en cours d&apos;examen <span className="user-count-badge">{uniqueUsers.length}</span>
           </h3>
           <div className="users-grid">
             {uniqueUsers.map((user: TeamUser) => (
@@ -202,8 +202,7 @@ export default function ExamSelector({ onSelectUser }: ExamSelectorProps) {
 
       {!loading && selectedExamId && uniqueUsers.length === 0 && (
         <div className="mt-6 text-center py-8 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
-
-          <h3 className="mt-2 text-sm font-medium">Aucun étudiant en cours d'examen</h3>
+          <h3 className="mt-2 text-sm font-medium">Aucun étudiant en cours d&apos;examen</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Veuillez sélectionner un autre examen
           </p>

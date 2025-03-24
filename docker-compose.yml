@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 42_eval_viewer
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      # Configuration du domaine
+      - NEXT_PUBLIC_DOMAIN=localhost
+      # Configuration API 42
+      - NEXT_PUBLIC_42_CLIENT_ID=<CLE_CLIENT_ID>
+      - NEXT_PUBLIC_42_CLIENT_SECRET=<CLE_CLIENT_SECRET>
+      # Correction: URL de redirection avec valeur directe au lieu de la variable
+      - NEXT_PUBLIC_42_REDIRECT_URI=http://${NEXT_PUBLIC_DOMAIN}:3000/api/auth/callback
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    volumes:
+      # Volume pour persister les données de l'historique
+      - 42_eval_data:/app/.next/cache
+      - 42_eval_local_storage:/app/.local-storage
+
+volumes:
+  42_eval_data:
+  42_eval_local_storage:
