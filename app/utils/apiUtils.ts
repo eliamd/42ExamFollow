@@ -125,7 +125,10 @@ export async function fetchWithRetry(url: string, options: any, retries = MAX_RE
       // Mettre à jour le compteur dans localStorage pour conserver la valeur entre les rechargements
       window.localStorage.setItem('42_api_calls_count', totalApiCalls.toString());
     }
-    return await axios(url, options);
+
+    // Utiliser notre API proxy pour éviter les problèmes CORS
+    const proxyUrl = url.replace('https://api.intra.42.fr/v2/', '/api/proxy/');
+    return await axios(proxyUrl, options);
   } catch (error: any) {
     if (error.response && error.response.status === 429 && retries > 0) {
       console.log(`Rate limited. Retrying in ${delay/1000} seconds... (${retries} attempts left)`);
