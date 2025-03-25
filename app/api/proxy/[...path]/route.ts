@@ -3,13 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Corriger la signature de la fonction GET pour correspondre au type attendu par Next.js 15
+// Corriger la signature de la fonction GET pour correspondre exactement au type attendu par Next.js 15
 export async function GET(
   request: NextRequest,
-  context: { params: { path: string[] } } // Correction du typage ici
+  { params }: { params: { path: string[] } } // Destructuration correcte de params dans le type
 ) {
   try {
-    const path = context.params.path.join('/');
+    const path = params.path.join('/');
     const searchParams = new URL(request.url).searchParams.toString();
     const queryString = searchParams ? `?${searchParams}` : '';
 
