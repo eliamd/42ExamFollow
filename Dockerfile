@@ -20,9 +20,9 @@ RUN npm run build:no-lint
 
 # Étape de production
 FROM base AS runner
-# Définir les variables d'environnement pour la production
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+# Définir les variables d'environnement pour la production (corriger la syntaxe)
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Créer un utilisateur non-root pour plus de sécurité
 RUN addgroup --system --gid 1001 nodejs

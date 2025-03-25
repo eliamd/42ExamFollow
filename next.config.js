@@ -20,10 +20,7 @@ const nextConfig = {
       ],
     },
   },
-  // Configuration du port d'écoute
-  server: {
-    port: parseInt(process.env.PORT || '3000', 10),
-  }
+  // Supprimer la configuration 'server' qui n'est pas supportée
 };
 
 module.exports = nextConfig;
