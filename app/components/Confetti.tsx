@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import ReactCanvasConfetti from 'react-canvas-confetti';
 import type { CreateTypes } from 'canvas-confetti';
 
@@ -10,7 +10,7 @@ interface ConfettiProps {
 
 export default function Confetti({ active }: ConfettiProps) {
   const refAnimationInstance = useRef<CreateTypes | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
+  // Supprimer l'état isAnimating qui cause la boucle infinie
 
   const getInstance = (instance: CreateTypes | null) => {
     refAnimationInstance.current = instance;
@@ -37,11 +37,9 @@ export default function Confetti({ active }: ConfettiProps) {
     }
   };
 
-  // Utilisation de useCallback pour utiliser cette fonction dans useEffect
+  // Utilisation de useCallback pour la fonction fireConfetti
   const fireConfetti = useCallback(() => {
-    if (!refAnimationInstance.current || isAnimating) return;
-
-    setIsAnimating(true);
+    if (!refAnimationInstance.current) return;
 
     // Animation initiale
     makeShot(randomInRange(50, 70), 0.1);
@@ -78,18 +76,19 @@ export default function Confetti({ active }: ConfettiProps) {
     sequence.forEach((shot, index) => {
       setTimeout(() => { shot(); }, 700 * (index + 1));
     });
+  }, []);
 
-    // Arrêter l'animation après 5 secondes
-    setTimeout(() => {
-      setIsAnimating(false);
-    }, 5500);
-  }, [isAnimating]);
+  // Utiliser une référence pour suivre la valeur précédente de `active`
+  const prevActiveRef = useRef(false);
 
   useEffect(() => {
-    if (active && !isAnimating) {
+    // Ne déclencher les confettis que lors du changement de false à true
+    if (active && !prevActiveRef.current) {
       fireConfetti();
     }
-  }, [active, isAnimating, fireConfetti]);
+    // Mettre à jour la référence de la valeur précédente
+    prevActiveRef.current = active;
+  }, [active, fireConfetti]);
 
   return (
     <ReactCanvasConfetti

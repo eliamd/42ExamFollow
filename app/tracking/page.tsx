@@ -247,19 +247,19 @@ function TrackingContent() {
                 [login]: true
               }));
 
-              // Déclencher les confettis avec le même pattern de réinitialisation
+              // Déclencher les confettis avec une meilleure gestion
               setShowConfetti(false);
+
               setTimeout(() => {
                 setShowConfetti(true);
+                // S'assurer de désactiver les confettis après l'animation
+                setTimeout(() => {
+                  setShowConfetti(false);
+                }, 5000);
               }, 50);
 
               // Jouer le son de complétion
               playCompletionSound();
-
-              // Désactiver les confettis après 5 secondes
-              setTimeout(() => {
-                setShowConfetti(false);
-              }, 5000);
             }
             // Si le statut est passé à "Réussi", jouer le son de complétion
             else if (newStatus === 'Réussi' && prevStatus !== 'Réussi') {
@@ -474,11 +474,21 @@ function TrackingContent() {
 
   // Test caché pour déclencher l'animation des 100% sans affecter les données
   const triggerCompletionAnimation = useCallback((login: string) => {
-    // Déclencher les confettis
-    setShowConfetti(false); // Réinitialiser d'abord pour s'assurer que le changement d'état sera détecté
-    setTimeout(() => {
-      setShowConfetti(true);
-    }, 50);
+    // S'assurer que les confettis sont d'abord désactivés
+    setShowConfetti(false);
+
+    // Utiliser requestAnimationFrame pour s'assurer que l'état a bien été mis à jour
+    requestAnimationFrame(() => {
+      // Puis les activer après un court délai
+      setTimeout(() => {
+        setShowConfetti(true);
+
+        // S'assurer de les désactiver après un délai
+        setTimeout(() => {
+          setShowConfetti(false);
+        }, 5000);
+      }, 50);
+    });
 
     // Jouer le son de complétion
     playCompletionSound();
