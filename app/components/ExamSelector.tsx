@@ -58,7 +58,8 @@ export default function ExamSelector({ onSelectUser }: ExamSelectorProps) {
 
       try {
         setLoading(true);
-        const response = await axios.get('https://api.intra.42.fr/v2/me/projects?filter[exam]=true&cursus_id=21', {
+        // Utiliser le proxy API au lieu de l'appel direct
+        const response = await axios.get('/api/proxy/me/projects?filter[exam]=true&cursus_id=21', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -103,8 +104,9 @@ export default function ExamSelector({ onSelectUser }: ExamSelectorProps) {
 
       setLoading(true);
       try {
+        // Utiliser le proxy API au lieu de l'appel direct
         const response = await axios.get(
-          `https://api.intra.42.fr/v2/projects/${selectedExamId}/teams?filter[status]=in_progress&filter[campus]=62`,
+          `/api/proxy/projects/${selectedExamId}/teams?filter[status]=in_progress&filter[campus]=62`,
           {
             headers: {
               Authorization: `Bearer ${token}`
