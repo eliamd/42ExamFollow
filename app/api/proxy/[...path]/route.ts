@@ -3,14 +3,19 @@ import { NextRequest, NextResponse } from 'next/server';
 // Configuration pour une API dynamique sans cache
 export const dynamic = 'force-dynamic';
 
-// Fonction de routage GET simplifiée avec la signature exacte attendue par Next.js 15.2.3
+// Déclaration du type pour les params
+type PathParams = Promise<{ path: string[] }>;
+
+// Fonction de routage GET avec params asynchrones pour Next.js 15
 export async function GET(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: PathParams }
 ) {
   try {
+    // Attendre la résolution de la Promise params
+    const resolvedParams = await params;
     // Reconstruire le chemin depuis le paramètre path[]
-    const path = params.path.join('/');
+    const path = resolvedParams.path.join('/');
 
     // Extraire les paramètres de la requête
     const searchParams = new URL(req.url).searchParams.toString();
