@@ -11,12 +11,19 @@ const nextConfig = {
     // Avertir mais ne pas échouer en production
     ignoreDuringBuilds: true,
   },
-  // Désactiver la génération statique pour les pages utilisant useSearchParams
+  // Configuration pour les routes API avec variables d'environnement
   experimental: {
     serverActions: {
-      allowedOrigins: ["localhost:3000"],
+      allowedOrigins: [
+        `${process.env.NEXT_PUBLIC_DOMAIN || 'localhost'}:${process.env.PORT || '3000'}`,
+        "192.168.1.22:3990" // Garder cette origine pour la compatibilité
+      ],
     },
   },
+  // Configuration du port d'écoute
+  server: {
+    port: parseInt(process.env.PORT || '3000', 10),
+  }
 };
 
 module.exports = nextConfig;

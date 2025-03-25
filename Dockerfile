@@ -15,8 +15,8 @@ RUN npm ci
 FROM dependencies AS builder
 # Copier tous les fichiers du projet
 COPY . .
-# Construire l'application avec l'option --no-lint pour ignorer les erreurs ESLint
-RUN npm run build -- --no-lint
+# Utiliser le script build:no-lint défini dans package.json
+RUN npm run build:no-lint
 
 # Étape de production
 FROM base AS runner
