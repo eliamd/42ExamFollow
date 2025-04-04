@@ -17,6 +17,10 @@ import {
   formatDate
 } from '../utils/apiUtils';
 
+// Importation des nouveaux composants
+import RotatingRedShadow from '../components/RotatingRedShadow';
+import FlipTimer from '../components/FlipTimer';
+
 // Constantes pour la gestion des requêtes API et des intervalles
 const BASE_UPDATE_INTERVAL = 4; // Intervalle minimum de base en secondes
 const MIN_UPDATE_INTERVAL = 1;  // Minimum absolu pour l'interface utilisateur
@@ -93,25 +97,30 @@ function findHighestGroupAttempt(attempts: any[]): any {
 // Composant pour le squelette de la carte étudiant
 function StudentCardSkeleton({ login }: { login: string }) {
   return (
-    <div className="student-card">
+    <div className="student-card skeleton-card">
+      {/* Bouton de suppression en skeleton */}
+      <div className="skeleton-remove-btn"></div>
+
       <div className="student-header">
         <div className="student-avatar">
           <div className="skeleton skeleton-avatar"></div>
+          {/* Indicateur de statut en skeleton */}
+          <div className="skeleton-status-indicator"></div>
         </div>
         <div className="student-info">
-          <div className="skeleton-text">{login}</div>
-          <div className="skeleton skeleton-text short"></div>
-          <div className="skeleton skeleton-text medium"></div>
+          <div className="skeleton skeleton-name">{login}</div>
+          <div className="skeleton skeleton-status"></div>
+          <div className="skeleton skeleton-exam"></div>
         </div>
       </div>
 
       <div className="progress-section">
         <div className="progress-header">
-          <div className="skeleton skeleton-text short"></div>
-          <div className="skeleton skeleton-text short"></div>
+          <div className="skeleton skeleton-label"></div>
+          <div className="skeleton skeleton-percentage"></div>
         </div>
-        <div className="progress-bar skeleton"></div>
-        <div className="skeleton skeleton-text" style={{ marginTop: '1rem' }}></div>
+        <div className="skeleton skeleton-progress-bar"></div>
+        <div className="skeleton skeleton-date"></div>
       </div>
     </div>
   );
@@ -120,9 +129,6 @@ function StudentCardSkeleton({ login }: { login: string }) {
 // Composant qui utilise useSearchParams (nécessite Suspense)
 function TrackingContent() {
   const searchParams = useSearchParams();
-  // ... reste du code qui utilise searchParams ...
-
-  // Le reste de votre logique actuelle va ici
   const [students, setStudents] = useState<string[]>([]);
   const [studentsData, setStudentsData] = useState<Record<string, Student>>({});
   const [previousProgress, setPreviousProgress] = useState<Record<string, number>>({});
@@ -154,12 +160,24 @@ function TrackingContent() {
   const [playCompletionSound] = useSound('/sounds/completion.mp3', { volume: 0.7 });
   const [playErrorSound] = useSound('/sounds/error.mp3', { volume: 0.6 });
 
+  // Nouvelles variables pour le départ différé
+  const [isDelayedStart, setIsDelayedStart] = useState(false);
+  const [examStartTime, setExamStartTime] = useState<Date | null>(null);
+  const [timeUntilStart, setTimeUntilStart] = useState<number>(0);
+  const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [examStarted, setExamStarted] = useState(false);
+  const [isUrgent, setIsUrgent] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
+    // Extraire les paramètres de l'URL
     const studentsParam = searchParams.get('students');
+    const delayedStartParam = searchParams.get('delayedStart');
+    const startTimeParam = searchParams.get('startTime');
+
     if (studentsParam) {
       const studentsList = studentsParam.split(',');
       setStudents(studentsList);
@@ -176,6 +194,24 @@ function TrackingContent() {
       nextUpdateRef.current = optimalInterval;
 
       console.log(`Nombre d'étudiants: ${studentsList.length}, intervalle optimal: ${optimalInterval}s`);
+    }
+
+    // Déterminer si c'est un départ différé
+    if (delayedStartParam === 'true' && startTimeParam) {
+      const startTimestamp = parseInt(startTimeParam);
+      if (!isNaN(startTimestamp)) {
+        const startDate = new Date(startTimestamp);
+        console.log('Départ différé activé:', {
+          timestamp: startTimestamp,
+          date: startDate.toLocaleString()
+        });
+        setIsDelayedStart(true);
+        setExamStartTime(startDate);
+        setExamStarted(false); // S'assurer que examStarted est initialement false
+      }
+    } else {
+      // Si pas de départ différé, on démarre immédiatement
+      setExamStarted(true);
     }
   }, [searchParams]);
 
@@ -194,6 +230,44 @@ function TrackingContent() {
 
     return () => clearInterval(updateCountInterval);
   }, []);  // Supprimer apiCallsCount de la dépendance pour éviter les mises à jour inutiles
+
+  // Gérer le décompte pour le départ différé
+  useEffect(() => {
+    if (!isDelayedStart || !examStartTime) {
+      return; // Ne pas modifier examStarted ici
+    }
+
+    console.log('Configuration du décompte pour:', examStartTime.toLocaleString());
+
+    const calculateTimeRemaining = () => {
+      const now = new Date();
+      const timeDiff = examStartTime.getTime() - now.getTime();
+
+      // Vérifier si on est à moins de 5 minutes (300 000 ms) du départ
+      const isUrgentTime = timeDiff > 0 && timeDiff <= 300000;
+      setIsUrgent(isUrgentTime);
+
+      if (timeDiff <= 0) {
+        // L'heure de départ est passée
+        console.log('Heure de départ atteinte ou dépassée, démarrage du suivi');
+        setExamStarted(true);
+        return;
+      }
+
+      // Calculer heures, minutes, secondes restantes
+      const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+
+      setTimeUntilStart(timeDiff);
+      setCountdown({ hours, minutes, seconds });
+    };
+
+    calculateTimeRemaining(); // Calcul initial
+
+    const timer = setInterval(calculateTimeRemaining, 1000);
+    return () => clearInterval(timer);
+  }, [isDelayedStart, examStartTime]);
 
   // Fonction pour actualiser un étudiant spécifique
   const updateStudentData = useCallback(async (login: string) => {
@@ -446,8 +520,13 @@ function TrackingContent() {
   // Effet pour le chargement initial et les actualisations périodiques
   useEffect(() => {
     let isActive = true;
-    // Correction: initialiser timerCleanup correctement comme une fonction ou utiliser un type compatible
     const timerCleanup = { current: () => {} };
+
+    // Ne rien faire si en attente du départ différé
+    if (!examStarted) {
+      console.log('Suivi en attente - départ différé programmé');
+      return () => { isActive = false; };
+    }
 
     // Fonction asynchrone interne pour effectuer la mise à jour
     const performUpdate = async () => {
@@ -462,7 +541,6 @@ function TrackingContent() {
     // Fonction de nettoyage (clean-up)
     return () => {
       isActive = false;
-      // Utiliser la fonction via l'objet current pour éviter l'erreur de typage
       timerCleanup.current();
 
       if (timerRef.current) {
@@ -470,7 +548,7 @@ function TrackingContent() {
         timerRef.current = null;
       }
     };
-  }, [students, mounted, updateCycle, updateAllStudentsSequentially]);
+  }, [students, mounted, updateCycle, updateAllStudentsSequentially, examStarted]);
 
   // Test caché pour déclencher l'animation des 100% sans affecter les données
   const triggerCompletionAnimation = useCallback((login: string) => {
@@ -628,6 +706,24 @@ function TrackingContent() {
 
   return (
     <div className="main-container">
+      {/* Affichage du décompte pour le départ différé */}
+      {isDelayedStart && !examStarted && (
+        <div className="countdown-overlay">
+          <RotatingRedShadow isActive={isUrgent} className="countdown-card">
+            <h2 className="countdown-title">Examen programmé</h2>
+            <p className="countdown-subtitle">
+              Début prévu à {examStartTime?.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            <FlipTimer
+              hours={countdown.hours}
+              minutes={countdown.minutes}
+              seconds={countdown.seconds}
+              isUrgent={isUrgent}
+            />
+          </RotatingRedShadow>
+        </div>
+      )}
+
       {/* Composant de confettis qui sera activé lors d'un accomplissement */}
       <Confetti active={showConfetti} />
 
@@ -692,117 +788,122 @@ function TrackingContent() {
       </header>
 
       <div className="content-area">
-        <div className="students-grid">
-          {students.map(login => {
-            const studentData = studentsData[login];
-            const isAnimated = animatedStudents[login];
-            const isFailed = failedStudents[login];
-            const isUpdating = currentUpdatingLogin === login;
+        {!isDelayedStart || examStarted ? (
+          <div className="students-grid">
+            {students.map(login => {
+              const studentData = studentsData[login];
+              const isAnimated = animatedStudents[login];
+              const isFailed = failedStudents[login];
+              const isUpdating = currentUpdatingLogin === login;
 
-            // Si nous n'avons pas encore les données de cet étudiant, afficher un squelette
-            if (!studentData) {
-              return <StudentCardSkeleton key={`skeleton-${login}`} login={login} />;
-            }
+              // Si nous n'avons pas encore les données de cet étudiant, afficher un squelette
+              if (!studentData) {
+                return <StudentCardSkeleton key={`skeleton-${login}`} login={login} />;
+              }
 
-            // Sinon, afficher la carte avec les données de l'étudiant
-            return (
-              <div
-                key={studentData.id}
-                className={`student-card ${isAnimated ? 'card-bounce rainbow-shadow' : ''} ${isFailed ? 'failure-shadow' : ''} ${finishedStudents[login] ? 'finished-student' : ''}`}
-                onDoubleClick={() => {
-                  // Toujours permettre l'actualisation manuelle même pour les étudiants terminés
-                  updateStudentData(login);
-                }}
-                title="Double-cliquez pour actualiser les données"
-              >
-                {/* Ajouter un indicateur visuel pour les étudiants terminés */}
-                {finishedStudents[login] && (
-                  <div className="finished-badge" title="Examen terminé - Actualisation automatique désactivée">✓</div>
-                )}
-
-                {isUpdating && (
-                  <div
-                    className="loading-indicator"
-                    title="Actualisation des données en cours..."
-                  >
-                    {/* Remplacer l'ancien loader-dots par le nouveau spinner-ring */}
-                    <div className="spinner-ring"></div>
-                  </div>
-                )}
-
-                <button
-                  className="remove-student-btn"
-                  onClick={() => removeStudent(login)}
-                  title="Supprimer cet étudiant"
+              // Modifier la carte étudiant pour revenir à l'effet d'échec clignotant
+              return (
+                <div
+                  key={studentData.id}
+                  className={`student-card ${isAnimated ? 'rainbow-no-bounce' : ''} ${isFailed ? 'failure-shadow' : ''} ${finishedStudents[login] ? 'finished-student' : ''}`}
+                  onDoubleClick={() => {
+                    // Toujours permettre l'actualisation manuelle même pour les étudiants terminés
+                    updateStudentData(login);
+                  }}
+                  title="Double-cliquez pour actualiser les données"
                 >
-                  ×
-                </button>
-                <div className="student-header">
-                  <div className="student-avatar">
-                    <img
-                      src={studentData.image?.versions?.small || studentData.image?.link}
-                      alt={studentData.login}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = 'https://cdn.intra.42.fr/users/default.png';
-                      }}
-                    />
-                    <div className={`status-indicator ${getStatusClass(studentData.status)}`}></div>
-                  </div>
-                  <div className="student-info">
-                    <h2
-                      className="student-name"
-                      onClick={() => triggerCompletionAnimation(studentData.login)}
-                      style={{ cursor: 'pointer' }}
+                  {/* Ajouter un indicateur visuel pour les étudiants terminés */}
+                  {finishedStudents[login] && (
+                    <div className="finished-badge" title="Examen terminé - Actualisation automatique désactivée">✓</div>
+                  )}
+
+                  {isUpdating && (
+                    <div
+                      className="loading-indicator"
+                      title="Actualisation des données en cours..."
                     >
-                      {studentData.login}
-                    </h2>
-                    <p
-                      className="student-status"
-                      onClick={() => triggerProgressAnimation(studentData.login)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {studentData.status}
-                      {studentData.groupNumber !== undefined && (
-                        <span className="group-number">
-                          (Groupe {studentData.groupNumber})
-                        </span>
+                      {/* Remplacer l'ancien loader-dots par le nouveau spinner-ring */}
+                      <div className="spinner-ring"></div>
+                    </div>
+                  )}
+
+                  <button
+                    className="remove-student-btn"
+                    onClick={() => removeStudent(login)}
+                    title="Supprimer cet étudiant"
+                  >
+                    ×
+                  </button>
+                  <div className="student-header">
+                    <div className="student-avatar">
+                      <img
+                        src={studentData.image?.versions?.small || studentData.image?.link}
+                        alt={studentData.login}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'https://cdn.intra.42.fr/users/default.png';
+                        }}
+                      />
+                      <div className={`status-indicator ${getStatusClass(studentData.status)}`}></div>
+                    </div>
+                    <div className="student-info">
+                      <h2
+                        className="student-name"
+                        onClick={() => triggerCompletionAnimation(studentData.login)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {studentData.login}
+                      </h2>
+                      <p
+                        className="student-status"
+                        onClick={() => triggerProgressAnimation(studentData.login)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {studentData.status}
+                        {studentData.groupNumber !== undefined && (
+                          <span className="group-number">
+                            (Groupe {studentData.groupNumber})
+                          </span>
+                        )}
+                      </p>
+                      {studentData.currentExam && (
+                        <p className="exam-name">{studentData.currentExam}</p>
                       )}
-                    </p>
-                    {studentData.currentExam && (
-                      <p className="exam-name">{studentData.currentExam}</p>
+                    </div>
+                  </div>
+
+                  <div className="progress-section">
+                    <div className="progress-header">
+                      <span
+                        className="progress-label"
+                        onClick={() => triggerFailureAnimation(studentData.login)}
+                        style={{ cursor: 'pointer' }}
+                        title="Cliquez pour tester l'animation d'échec"
+                      >
+                        Progression
+                      </span>
+                      <span className="progress-value">{studentData.progress}%</span>
+                    </div>
+                    <div className="progress-bar">
+                      <div
+                        className={`progress-fill ${getProgressClass(studentData.status)}`}
+                        style={{ width: `${studentData.progress}%` }}
+                      ></div>
+                    </div>
+                    {studentData.lastAttemptDate && (
+                      <div className="attempt-date">
+                        Dernier essai : {formatDate(studentData.lastAttemptDate)}
+                      </div>
                     )}
                   </div>
                 </div>
-
-                <div className="progress-section">
-                  <div className="progress-header">
-                    <span
-                      className="progress-label"
-                      onClick={() => triggerFailureAnimation(studentData.login)}
-                      style={{ cursor: 'pointer' }}
-                      title="Cliquez pour tester l'animation d'échec"
-                    >
-                      Progression
-                    </span>
-                    <span className="progress-value">{studentData.progress}%</span>
-                  </div>
-                  <div className="progress-bar">
-                    <div
-                      className={`progress-fill ${getProgressClass(studentData.status)}`}
-                      style={{ width: `${studentData.progress}%` }}
-                    ></div>
-                  </div>
-                  {studentData.lastAttemptDate && (
-                    <div className="attempt-date">
-                      Dernier essai : {formatDate(studentData.lastAttemptDate)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="delayed-start-placeholder">
+          </div>
+        )}
       </div>
     </div>
   );
@@ -820,26 +921,17 @@ function LoadingSkeleton() {
               <h1 className="brand-title">Eval Viewer</h1>
             </div>
           </div>
+          <div className="header-controls">
+            <div className="skeleton skeleton-badge"></div>
+            <div className="skeleton skeleton-badge"></div>
+            <div className="skeleton skeleton-badge"></div>
+          </div>
         </div>
       </header>
       <div className="content-area">
         <div className="students-grid">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={`skeleton-${index}`} className="student-card">
-              <div className="student-header">
-                <div className="student-avatar">
-                  <div className="skeleton skeleton-avatar"></div>
-                </div>
-                <div className="student-info">
-                  <div className="skeleton skeleton-text"></div>
-                  <div className="skeleton skeleton-text short"></div>
-                </div>
-              </div>
-              <div className="progress-section">
-                <div className="skeleton skeleton-text medium"></div>
-                <div className="progress-bar skeleton"></div>
-              </div>
-            </div>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <StudentCardSkeleton key={`skeleton-${index}`} login={`student${index + 1}`} />
           ))}
         </div>
       </div>

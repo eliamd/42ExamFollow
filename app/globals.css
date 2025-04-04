@@ -885,13 +885,11 @@ body {
 
 /* ====== ANIMATIONS ====== */
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-15px); }
-  60% { transform: translateY(-5px); }
+  0%, 100% { transform: translateY(0); }
 }
 
 .card-bounce {
-  animation: bounce 1s ease;
+  animation: none !important;
 }
 
 @keyframes rainbow-shadow {
@@ -932,21 +930,87 @@ body {
   margin-bottom: 1rem;
 }
 
-/* ====== SQUELETTES DE CHARGEMENT ====== */
-@keyframes skeleton-loading {
-  0% { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
+/* Effet d'ombre rouge tournante pour le décompte urgent - Version plus proche */
+@keyframes rotate-red-shadow {
+  /* On peut supprimer ce bloc entièrement - il sera remplacé par Framer Motion */
 }
 
+/* Simplifier l'animation des chiffres du compte à rebours */
+@keyframes digit-slide {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { transform: translateY(-50%); opacity: 0.5; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Simplifier la structure du compteur */
+.countdown-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  background-color: var(--gray-100);
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  min-width: 80px;
+  height: 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Nouvelle classe pour l'animation du chiffre */
+.countdown-number .digit-change {
+  animation: digit-slide 0.3s ease-out forwards;
+}
+
+/* Modifier l'animation pour le compte à rebours urgent sans pulsation */
+.urgent-countdown {
+  /* Cette classe peut être supprimée - gérée par RotatingRedShadow */
+}
+
+/* Animation arc-en-ciel pour cartes sans effet de rebond */
+.rainbow-no-bounce {
+  animation: rainbow-shadow 3s linear infinite;
+  transform: none !important;
+}
+
+/* Styles pour le FlipTimer */
+.countdown-number-container {
+  min-width: 80px;
+  height: 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--gray-100);
+  border-radius: var(--border-radius);
+  padding: 0.5rem 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .countdown-number-container {
+    background-color: var(--gray-700);
+  }
+}
+
+/* Styles améliorés pour les skeletons */
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(0, 0, 0, 0.06) 25%,
-    rgba(0, 0, 0, 0.15) 37%,
-    rgba(0, 0, 0, 0.06) 63%
+    var(--gray-200) 25%,
+    var(--gray-300) 37%,
+    var(--gray-200) 63%
   );
   background-size: 400% 100%;
-  animation: skeleton-loading 1.4s ease infinite;
+  animation: skeleton-loading 1.5s ease infinite;
+  border-radius: var(--border-radius-sm);
+}
+
+.skeleton-card {
+  position: relative;
+  overflow: visible;
 }
 
 .skeleton-avatar {
@@ -955,23 +1019,97 @@ body {
   border-radius: 50%;
 }
 
-.skeleton-text {
+.skeleton-status-indicator {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  width: 1rem;
   height: 1rem;
-  width: 80%;
-  margin-bottom: 0.5rem;
-  border-radius: var(--border-radius-sm);
+  border-radius: 50%;
+  background-color: var(--gray-300);
+  border: 2px solid var(--background);
 }
 
-.skeleton-text.short { width: 40%; }
-.skeleton-text.medium { width: 60%; }
+.skeleton-name {
+  height: 1.5rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
 
-/* ====== ÉTATS D'ERREUR ====== */
-.error-message {
-  padding: 1rem;
-  color: var(--error);
-  background-color: rgba(239, 68, 68, 0.1);
-  border-radius: var(--border-radius);
-  text-align: center;
+.skeleton-status {
+  height: 1rem;
+  width: 70%;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-exam {
+  height: 1rem;
+  width: 90%;
+}
+
+.skeleton-label {
+  height: 1rem;
+  width: 30%;
+}
+
+.skeleton-percentage {
+  height: 1rem;
+  width: 15%;
+}
+
+.skeleton-progress-bar {
+  height: 0.75rem;
+  width: 100%;
+  margin: 0.75rem 0;
+  border-radius: var(--border-radius-full);
+}
+
+.skeleton-date {
+  height: 1rem;
+  width: 60%;
+  margin-top: 1rem;
+}
+
+.skeleton-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--gray-300);
+  opacity: 0.5;
+}
+
+.skeleton-badge {
+  height: 2rem;
+  width: 5rem;
+  border-radius: 20px;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-color-scheme: dark) {
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--gray-700) 25%,
+      var(--gray-600) 37%,
+      var(--gray-700) 63%
+    );
+  }
+
+  .skeleton-status-indicator {
+    background-color: var(--gray-600);
+    border-color: var(--gray-800);
+  }
+
+  .skeleton-remove-btn {
+    background-color: var(--gray-600);
+  }
 }
 
 /* ====== MEDIA QUERIES ====== */
@@ -1443,5 +1581,301 @@ body {
     background-color: var(--gray-800);
     border-color: var(--gray-700);
     color: var(--text-dark);
+  }
+}
+
+/* Styles pour le départ différé */
+.delayed-start-container {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: var(--gray-50);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--gray-200);
+}
+
+.delayed-start-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.switch-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--gray-300);
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: var(--primary);
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px var(--primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.slider.round {
+  border-radius: 24px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.switch-label {
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.time-selector-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--background);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-selector-button:hover {
+  background-color: var(--gray-100);
+  border-color: var(--primary);
+}
+
+.time-selector-icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--primary);
+}
+
+.time-picker-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--background);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+}
+
+.time-picker-header {
+  margin-bottom: 0.75rem;
+}
+
+.time-picker-header h4 {
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  margin: 0;
+}
+
+.time-picker-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.time-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.time-selector label {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
+.time-selector select {
+  padding: 0.5rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  background-color: var(--background);
+  color: var(--text);
+}
+
+/* Styles pour le décompte sur la page de tracking */
+.countdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.countdown-card {
+  background-color: var(--background);
+  border-radius: var(--border-radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  max-width: 90%;
+  width: 500px;
+}
+
+.countdown-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.countdown-subtitle {
+  color: var(--gray-600);
+  margin-bottom: 1.5rem;
+}
+
+.countdown-timer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.countdown-segment {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.countdown-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  background-color: var(--gray-100);
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  min-width: 80px;
+  height: 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.countdown-label {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  margin-top: 0.25rem;
+}
+
+.countdown-divider {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--gray-400);
+  margin-top: -0.5rem;
+}
+
+.delayed-start-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  width: 100%;
+  color: var(--gray-500);
+  font-size: 1rem;
+  text-align: center;
+}
+
+/* Mode sombre pour le départ différé */
+@media (prefers-color-scheme: dark) {
+  .delayed-start-container {
+    background-color: var(--gray-800);
+    border-color: var(--gray-700);
+  }
+
+  .switch-label {
+    color: var(--gray-300);
+  }
+
+  .time-selector-button {
+    background-color: var(--gray-800);
+    border-color: var(--gray-700);
+    color: var(--gray-300);
+  }
+
+  .time-selector-button:hover {
+    background-color: var(--gray-700);
+  }
+
+  .time-picker-container {
+    background-color: var(--gray-800);
+    border-color: var(--gray-700);
+  }
+
+  .time-picker-header h4 {
+    color: var(--gray-300);
+  }
+
+  .time-selector label {
+    color: var(--gray-400);
+  }
+
+  .time-selector select {
+    background-color: var(--gray-800);
+    border-color: var(--gray-700);
+    color: var(--text-dark);
+  }
+
+  .countdown-card {
+    background-color: var(--gray-800);
+  }
+
+  .countdown-subtitle {
+    color: var(--gray-400);
+  }
+
+  .countdown-number {
+    color: var(--text-dark);
+    background-color: var(--gray-700);
   }
 }

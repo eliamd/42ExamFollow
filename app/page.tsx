@@ -5,6 +5,7 @@ import { MagnifyingGlassIcon, ClockIcon, TrashIcon } from '@heroicons/react/24/o
 import { useAuth } from './components/AuthProvider';
 import UserSearch from './components/UserSearch';
 import ExamSelector from './components/ExamSelector';
+import DelayedStartSwitch from './components/DelayedStartSwitch';
 
 // Interface pour stocker les groupes dans l'historique
 interface HistoryGroup {
@@ -17,6 +18,8 @@ export default function Home() {
   const { isAuthenticated, login } = useAuth();
   const [students, setStudents] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryGroup[]>([]);
+  const [delayedStartEnabled, setDelayedStartEnabled] = useState(false);
+  const [startTime, setStartTime] = useState<Date | null>(null);
 
   // Charger l'historique depuis localStorage au montage du composant
   useEffect(() => {
@@ -91,7 +94,14 @@ export default function Home() {
       saveGroupToHistory(students);
 
       const queryString = students.join(',');
-      window.location.href = `/tracking?students=${queryString}`;
+      let trackingUrl = `/tracking?students=${queryString}`;
+
+      // Ajouter les paramètres de départ différé si activé
+      if (delayedStartEnabled && startTime) {
+        trackingUrl += `&delayedStart=true&startTime=${startTime.getTime()}`;
+      }
+
+      window.location.href = trackingUrl;
     }
   };
 
@@ -141,6 +151,14 @@ export default function Home() {
         <div className="search-section">
           <ExamSelector onSelectUser={handleAddStudent} />
           <UserSearch onSelectUser={handleAddStudent} />
+
+          {/* Ajout du composant de départ différé */}
+          <DelayedStartSwitch
+            enabled={delayedStartEnabled}
+            onToggle={setDelayedStartEnabled}
+            startTime={startTime}
+            onStartTimeChange={setStartTime}
+          />
         </div>
 
         {students.length > 0 && (
